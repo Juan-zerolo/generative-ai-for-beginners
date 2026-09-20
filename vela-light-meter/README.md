@@ -1,24 +1,46 @@
-# Luz — medidor de luz ambiental para Xiaomi Smart Band 8 Pro (Vela / quick app)
+# Luz — nivel de luz para Xiaomi Smart Band 8 Pro (Vela / quick app)
 
 App mínima en formato `.rpk` (quick app de Xiaomi Vela) que muestra el nivel de
-luz ambiental como porcentaje, en texto plano, actualizándose en vivo.
+luz como porcentaje, en texto plano, actualizándose en vivo.
+
+## Hallazgo importante: no hay sensor de luz accesible
+
+Verificado en el propio dispositivo con la build de diagnóstico 1.1.0
+(Smart Band 8 Pro + Gadgetbridge):
 
 ```
-   47%
-  318 lx
+ok: brightness, device
+no: sensor, sensors, light, ambientlight, health, wear
+LUZ: ninguna
 ```
+
+El módulo `@system.sensor` **no se resuelve** en ese firmware, ni declarándolo
+en `features` del manifest, ni resolviéndolo dinámicamente con
+`$app_require$`. Es decir: las quick apps de esa banda no tienen acceso a los
+lux del sensor de luz ambiental. Lo único relacionado con luz que expone la
+plataforma es `@system.brightness` (brillo de pantalla).
+
+Por eso la app usa, en este orden:
+
+1. Sensor de luz real (`subscribeLight` / `subscribeAmbientLight` /
+   `subscribeLightSensor`) si algún firmware lo expone → porcentaje a partir de
+   los lux, escala logarítmica.
+2. Si no existe: **brillo de pantalla en modo automático** como aproximación
+   indirecta de la luz ambiental. No son lux: es el valor al que el propio
+   firmware ajusta la pantalla según la luz que mide. Sube en un entorno
+   luminoso y baja al taparla.
+
+Con la fuente 2, tocar la pantalla activa el brillo automático
+(`brightness.setMode({mode: 1})`); sin ese modo el valor es fijo y el
+porcentaje no cambia.
 
 ## Archivos listos para instalar
 
-- `dist/com.claude.lightmeter.release.1.1.0.rpk` — firmado con un certificado
-  propio (modo release).
-- `dist/com.claude.lightmeter.debug.1.1.0.rpk` — firmado con el certificado de
-  desarrollo que trae el toolkit oficial (modo debug).
+- `dist/com.claude.lightmeter.release.1.2.0.rpk` — firmado con certificado propio.
+- `dist/com.claude.lightmeter.debug.1.2.0.rpk` — firmado con el certificado de
+  desarrollo del toolkit oficial.
 
-Ambos instalan y arrancan en una Smart Band 8 Pro (verificado). La versión
-1.1.0 añade una línea de diagnóstico en pantalla porque en ese firmware
-`@system.sensor` no se resuelve: el módulo llega como `undefined` y el acceso
-lanzaba excepción, dejando la app en el texto inicial.
+Ambos instalan y arrancan en una Smart Band 8 Pro (verificado).
 
 Instalación con Gadgetbridge: abrir el `.rpk` desde el gestor de archivos y
 elegir Gadgetbridge (activity `FileInstallerActivity`), o dentro de
@@ -26,12 +48,12 @@ Gadgetbridge usar la instalación de ficheros con la banda conectada.
 
 ## Cómo funciona
 
-- `src/pages/index/index.ux` se suscribe al sensor de luz vía `@system.sensor`.
-  Vela no documenta públicamente (o no de forma accesible) el nombre exacto del
-  método en cada versión de firmware, así que el código prueba en orden
-  `subscribeLight`, `subscribeAmbientLight` y `subscribeLightSensor`, y usa el
-  primero que exista. Del objeto del callback lee la primera clave numérica
-  entre `intensity`, `value`, `lux`, `light`, `illuminance`.
+- `src/pages/index/index.ux` intenta primero `@system.sensor` (probando varios
+  nombres de método, todos dentro de `try/catch` porque el módulo puede llegar
+  como `undefined`) y, si no hay ninguno, cae al sondeo de
+  `brightness.getValue()` cada 700 ms.
+- El brillo se escala a porcentaje deduciendo el rango del firmware (0-100 o
+  0-255) a partir del máximo observado.
 - Conversión lux → porcentaje (escala logarítmica, 0 lx = 0 %, ≥10 000 lx = 100 %):
 
   ```
