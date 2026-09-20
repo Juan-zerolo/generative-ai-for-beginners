@@ -20,17 +20,19 @@ const POLL_MS = 700
 const CHUNK = 330
 
 // Barrido amplio: se resuelven dinamicamente, los que no existen dan undefined.
+// Mismos nombres que se declaran en manifest.json: el runtime solo inyecta
+// los modulos declarados, asi que probar los no declarados no prueba nada.
 const PROBE_MODULES = [
+  'system.storage', 'system.prompt', 'system.vibrator', 'system.network',
+  'system.file', 'system.alarm', 'system.audio', 'system.interconnect',
+  'system.configuration', 'system.router', 'system.app', 'system.device',
+  'system.brightness',
   'system.sensor', 'system.sensors', 'system.sensorhub', 'system.light',
-  'system.ambientlight', 'system.ambientLight', 'system.als', 'system.lightsensor',
-  'system.brightness', 'system.device', 'system.app', 'system.health',
-  'system.fitness', 'system.sport', 'system.wear', 'system.miwear',
-  'system.motion', 'system.step', 'system.heartrate', 'system.battery',
-  'system.power', 'system.storage', 'system.prompt', 'system.router',
-  'system.vibrator', 'system.network', 'system.file', 'system.configuration',
-  'system.interconnect', 'system.alarm', 'system.audio', 'system.notification',
-  'system.screen', 'system.display', 'system.hardware', 'system.systeminfo',
-  'system.watchface', 'system.env', 'service.sensor'
+  'system.lightsensor', 'system.ambientlight', 'system.als', 'system.health',
+  'system.fitness', 'system.sport', 'system.motion', 'system.step',
+  'system.heartrate', 'system.wear', 'system.miwear', 'system.battery',
+  'system.power', 'system.screen', 'system.display', 'system.hardware',
+  'system.watchface', 'system.notification'
 ]
 const LIGHT_RE = /light|lux|ambient|illum|\bals\b/i
 // Modulos cuyos metodos merece la pena listar (los estandar se omiten).

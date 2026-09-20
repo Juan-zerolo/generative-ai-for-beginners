@@ -1,8 +1,8 @@
 {
   "package": "com.claude.lightmeter",
   "name": "Luz",
-  "versionName": "1.3.0",
-  "versionCode": 4,
+  "versionName": "1.4.0",
+  "versionCode": 5,
   "minPlatformVersion": 1000,
   "icon": "/common/logo.png",
   "deviceTypeList": [
@@ -10,13 +10,109 @@
   ],
   "features": [
     {
-      "name": "system.sensor"
+      "name": "system.storage"
+    },
+    {
+      "name": "system.prompt"
+    },
+    {
+      "name": "system.vibrator"
+    },
+    {
+      "name": "system.network"
+    },
+    {
+      "name": "system.file"
+    },
+    {
+      "name": "system.alarm"
+    },
+    {
+      "name": "system.audio"
+    },
+    {
+      "name": "system.interconnect"
+    },
+    {
+      "name": "system.configuration"
+    },
+    {
+      "name": "system.router"
+    },
+    {
+      "name": "system.app"
+    },
+    {
+      "name": "system.device"
     },
     {
       "name": "system.brightness"
     },
     {
-      "name": "system.device"
+      "name": "system.sensor"
+    },
+    {
+      "name": "system.sensors"
+    },
+    {
+      "name": "system.sensorhub"
+    },
+    {
+      "name": "system.light"
+    },
+    {
+      "name": "system.lightsensor"
+    },
+    {
+      "name": "system.ambientlight"
+    },
+    {
+      "name": "system.als"
+    },
+    {
+      "name": "system.health"
+    },
+    {
+      "name": "system.fitness"
+    },
+    {
+      "name": "system.sport"
+    },
+    {
+      "name": "system.motion"
+    },
+    {
+      "name": "system.step"
+    },
+    {
+      "name": "system.heartrate"
+    },
+    {
+      "name": "system.wear"
+    },
+    {
+      "name": "system.miwear"
+    },
+    {
+      "name": "system.battery"
+    },
+    {
+      "name": "system.power"
+    },
+    {
+      "name": "system.screen"
+    },
+    {
+      "name": "system.display"
+    },
+    {
+      "name": "system.hardware"
+    },
+    {
+      "name": "system.watchface"
+    },
+    {
+      "name": "system.notification"
     }
   ],
   "config": {

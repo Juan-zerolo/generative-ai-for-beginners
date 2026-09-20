@@ -31,20 +31,37 @@ Por eso la app usa, en este orden:
    123/255. La API entrega el nivel configurado, no el que el firmware calcula
    en tiempo real a partir del sensor.
 
-La build 1.3.0 hace un barrido de ~39 nombres de módulo `@system.*` y lista en
-pantalla, paginado (toca para pasar de página), todos los métodos de los
-módulos que sí existen, marcando cualquiera que contenga
-`light|lux|ambient|illum|als`. Es el último intento de localizar una vía de
-acceso a la luz ambiental antes de descartar el camino del `.rpk`.
+### Barrido de la API en el dispositivo
+
+La build 1.3.0 sondeó ~39 nombres de módulo y solo resolvieron 5:
+
+```
+brightness  getValue,setValue,getMode,setMode,setKeepScreenOn
+device      getInfo,getDeviceId,getSerial,getTotalStorage,getAvailableStorage
+app         getInfo,terminate,loadLibrary
+router, configuration
+```
+
+Dato clave: `storage`, `prompt` y `vibrator` tampoco resolvieron, y esos sí
+existen en Vela (otros proyectos de banda los usan). La diferencia es que no
+estaban declarados en `features`. Conclusión: **el runtime solo inyecta los
+módulos declarados en el manifest**; `router`, `configuration` y `app` son
+núcleo y vienen siempre. Por tanto un sondeo dinámico de nombres no declarados
+no demuestra nada.
+
+La build 1.4.0 declara 35 features en el manifest — los conocidos como control
+(`storage`, `prompt`, `vibrator`, …) y todos los candidatos de sensor/luz — y
+vuelve a sondear exactamente esa lista. Si los de control resuelven y los de
+luz no, el camino del `.rpk` queda descartado con pruebas.
 
 ## Archivos listos para instalar
 
-- `dist/com.claude.lightmeter.release.1.3.0.rpk` — firmado con certificado
-  propio. Se instala como **«REL Luz»** y pone `RELEASE 1.3.0` arriba en la
+- `dist/com.claude.lightmeter.release.1.4.0.rpk` — firmado con certificado
+  propio. Se instala como **«REL Luz»** y pone `RELEASE 1.4.0` arriba en la
   pantalla.
-- `dist/com.claude.lightmeter.debug.1.3.0.rpk` — firmado con el certificado de
+- `dist/com.claude.lightmeter.debug.1.4.0.rpk` — firmado con el certificado de
   desarrollo del toolkit oficial. Se instala como **«DBG Luz»** y pone
-  `DEBUG 1.3.0`.
+  `DEBUG 1.4.0`.
 
 `./build-both.sh` genera las dos, etiquetando cada una en el nombre del
 manifest y en la constante `VARIANT` de la página.
