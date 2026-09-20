@@ -1,0 +1,13 @@
+{
+  "name": "vela-light-meter",
+  "version": "1.0.0",
+  "description": "Medidor de luz ambiental para Xiaomi Smart Band (Vela / quick app)",
+  "private": true,
+  "scripts": {
+    "build": "aiot build",
+    "release": "aiot release"
+  },
+  "devDependencies": {
+    "aiot-toolkit": "2.0.5"
+  }
+}

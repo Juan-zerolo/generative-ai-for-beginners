@@ -1,0 +1,10 @@
+<script>
+export default {
+  onCreate() {
+    console.log('light meter: app created')
+  },
+  onDestroy() {
+    console.log('light meter: app destroyed')
+  }
+}
+</script>
