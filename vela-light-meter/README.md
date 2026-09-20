@@ -10,11 +10,15 @@ luz ambiental como porcentaje, en texto plano, actualizándose en vivo.
 
 ## Archivos listos para instalar
 
-- `dist/com.claude.lightmeter.release.1.0.0.rpk` — firmado con un certificado
-  propio (modo release). Probar este primero.
-- `dist/com.claude.lightmeter.debug.1.0.0.rpk` — firmado con el certificado de
-  desarrollo que trae el toolkit oficial (modo debug). Alternativa si el
-  anterior es rechazado por el dispositivo.
+- `dist/com.claude.lightmeter.release.1.1.0.rpk` — firmado con un certificado
+  propio (modo release).
+- `dist/com.claude.lightmeter.debug.1.1.0.rpk` — firmado con el certificado de
+  desarrollo que trae el toolkit oficial (modo debug).
+
+Ambos instalan y arrancan en una Smart Band 8 Pro (verificado). La versión
+1.1.0 añade una línea de diagnóstico en pantalla porque en ese firmware
+`@system.sensor` no se resuelve: el módulo llega como `undefined` y el acceso
+lanzaba excepción, dejando la app en el texto inicial.
 
 Instalación con Gadgetbridge: abrir el `.rpk` desde el gestor de archivos y
 elegir Gadgetbridge (activity `FileInstallerActivity`), o dentro de
@@ -38,8 +42,13 @@ Gadgetbridge usar la instalación de ficheros con la banda conectada.
   decenas de miles de lx (sol directo); en escala lineal casi todo en interior
   daría 0 %.
 - La suscripción se cancela en `onHide` / `onDestroy` (`unsubscribe…`).
-- Si ningún método existe, la pantalla muestra `sensor de luz no disponible`;
-  si existe pero no llega ningún dato en 4 s, muestra `sin datos del sensor`.
+- Si ningún método existe, la pantalla muestra `sin API de luz`.
+- Diagnóstico en pantalla (1.1.0): marcadores de ciclo de vida (`lc:IRS`), qué
+  módulos `@system.*` resuelven y cuáles no (`ok:` / `no:`), las claves del
+  módulo de sensores que contienen `light|lux|ambient|illum|als`, y el último
+  error capturado. Los módulos se resuelven dinámicamente con
+  `$app_require$('@app-module/<nombre>')` dentro de `try/catch`, además de los
+  `import` estáticos.
 
 ## Compilar desde el código
 
