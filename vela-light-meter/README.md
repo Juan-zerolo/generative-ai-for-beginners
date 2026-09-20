@@ -25,20 +25,29 @@ Por eso la app usa, en este orden:
 1. Sensor de luz real (`subscribeLight` / `subscribeAmbientLight` /
    `subscribeLightSensor`) si algún firmware lo expone → porcentaje a partir de
    los lux, escala logarítmica.
-2. Si no existe: **brillo de pantalla en modo automático** como aproximación
-   indirecta de la luz ambiental. No son lux: es el valor al que el propio
-   firmware ajusta la pantalla según la luz que mide. Sube en un entorno
-   luminoso y baja al taparla.
+2. **Brillo de pantalla** (`brightness.getValue`) — probado en el dispositivo y
+   **descartado como medida de luz**: con el brillo automático activado
+   (`setMode({mode: 1})` confirmado OK) el valor devuelto se queda fijo en
+   123/255. La API entrega el nivel configurado, no el que el firmware calcula
+   en tiempo real a partir del sensor.
 
-Con la fuente 2, tocar la pantalla activa el brillo automático
-(`brightness.setMode({mode: 1})`); sin ese modo el valor es fijo y el
-porcentaje no cambia.
+La build 1.3.0 hace un barrido de ~39 nombres de módulo `@system.*` y lista en
+pantalla, paginado (toca para pasar de página), todos los métodos de los
+módulos que sí existen, marcando cualquiera que contenga
+`light|lux|ambient|illum|als`. Es el último intento de localizar una vía de
+acceso a la luz ambiental antes de descartar el camino del `.rpk`.
 
 ## Archivos listos para instalar
 
-- `dist/com.claude.lightmeter.release.1.2.0.rpk` — firmado con certificado propio.
-- `dist/com.claude.lightmeter.debug.1.2.0.rpk` — firmado con el certificado de
-  desarrollo del toolkit oficial.
+- `dist/com.claude.lightmeter.release.1.3.0.rpk` — firmado con certificado
+  propio. Se instala como **«REL Luz»** y pone `RELEASE 1.3.0` arriba en la
+  pantalla.
+- `dist/com.claude.lightmeter.debug.1.3.0.rpk` — firmado con el certificado de
+  desarrollo del toolkit oficial. Se instala como **«DBG Luz»** y pone
+  `DEBUG 1.3.0`.
+
+`./build-both.sh` genera las dos, etiquetando cada una en el nombre del
+manifest y en la constante `VARIANT` de la página.
 
 Ambos instalan y arrancan en una Smart Band 8 Pro (verificado).
 

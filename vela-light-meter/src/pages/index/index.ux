@@ -1,9 +1,10 @@
 <template>
-  <div class="page" onclick="onTap">
+  <div class="page" onclick="nextPage">
+    <text class="tag">{{tagText}}</text>
     <text class="big">{{percentText}}</text>
     <text class="line">{{sourceText}}</text>
-    <text class="hint">{{hintText}}</text>
-    <text class="tiny">{{diagText}}</text>
+    <text class="body">{{pageText}}</text>
+    <text class="foot">{{footText}}</text>
   </div>
 </template>
 
@@ -12,23 +13,34 @@ import sensor from '@system.sensor'
 import brightness from '@system.brightness'
 import device from '@system.device'
 
-const MAX_LUX = 10000
-const LOG_MAX = Math.log(MAX_LUX + 1)
+// __VARIANT__ lo sustituye el script de build (RELEASE / DEBUG).
+const VARIANT = '__VARIANT__'
+const VERSION = '1.3.0'
 const POLL_MS = 700
+const CHUNK = 330
 
-// Por si algun firmware si expone sensor de luz.
-const SUBSCRIBE_NAMES = ['subscribeLight', 'subscribeAmbientLight', 'subscribeLightSensor']
-const LUX_KEYS = ['intensity', 'value', 'lux', 'light', 'illuminance']
+// Barrido amplio: se resuelven dinamicamente, los que no existen dan undefined.
+const PROBE_MODULES = [
+  'system.sensor', 'system.sensors', 'system.sensorhub', 'system.light',
+  'system.ambientlight', 'system.ambientLight', 'system.als', 'system.lightsensor',
+  'system.brightness', 'system.device', 'system.app', 'system.health',
+  'system.fitness', 'system.sport', 'system.wear', 'system.miwear',
+  'system.motion', 'system.step', 'system.heartrate', 'system.battery',
+  'system.power', 'system.storage', 'system.prompt', 'system.router',
+  'system.vibrator', 'system.network', 'system.file', 'system.configuration',
+  'system.interconnect', 'system.alarm', 'system.audio', 'system.notification',
+  'system.screen', 'system.display', 'system.hardware', 'system.systeminfo',
+  'system.watchface', 'system.env', 'service.sensor'
+]
+const LIGHT_RE = /light|lux|ambient|illum|\bals\b/i
+// Modulos cuyos metodos merece la pena listar (los estandar se omiten).
+const DETAIL_RE = /sensor|light|als|brightness|device|app|health|fitness|sport|wear|motion|step|heart|screen|display|hardware|systeminfo|watchface|env|battery|power/i
 
-let activeName = ''
-let activeMod = null
 let timer = null
-let maxSeen = 0
-let autoMode = -1
 let lastErr = ''
 
 function note(e) {
-  lastErr = ('' + e).slice(0, 60)
+  lastErr = ('' + e).slice(0, 50)
 }
 
 function requireModule(name) {
@@ -45,203 +57,161 @@ function requireModule(name) {
   return undefined
 }
 
-function luxToPercent(lux) {
-  if (!(lux >= 0)) return 0
-  const pct = Math.round((Math.log(lux + 1) / LOG_MAX) * 100)
-  return pct < 0 ? 0 : pct > 100 ? 100 : pct
+function keysOf(obj) {
+  const out = []
+  if (obj === undefined || obj === null) return out
+  const push = function (k) {
+    if (k !== 'constructor' && out.indexOf(k) < 0) out.push(k)
+  }
+  try {
+    for (const k in obj) push(k)
+  } catch (e) {
+    note(e)
+  }
+  try {
+    Object.keys(obj).forEach(push)
+  } catch (e) {
+    note(e)
+  }
+  try {
+    Object.getOwnPropertyNames(obj).forEach(push)
+  } catch (e) {
+    note(e)
+  }
+  try {
+    const proto = Object.getPrototypeOf(obj)
+    if (proto && proto !== Object.prototype) Object.getOwnPropertyNames(proto).forEach(push)
+  } catch (e) {
+    note(e)
+  }
+  return out
 }
 
-function readLux(ret) {
-  if (ret === null || ret === undefined) return -1
-  if (typeof ret === 'number') return ret
-  for (let i = 0; i < LUX_KEYS.length; i++) {
-    if (typeof ret[LUX_KEYS[i]] === 'number') return ret[LUX_KEYS[i]]
+function chunk(title, text) {
+  const out = []
+  const body = text || '-'
+  for (let i = 0; i < body.length; i += CHUNK) {
+    const part = body.slice(i, i + CHUNK)
+    out.push(title + (i ? '+' : '') + '\n' + part)
   }
-  return -1
+  return out
 }
 
 export default {
   private: {
+    tagText: '',
     percentText: '--%',
-    sourceText: 'midiendo...',
-    hintText: '',
-    diagText: ''
+    sourceText: '',
+    pageText: 'toca para ver paginas',
+    footText: '',
+    pages: [],
+    idx: 0
   },
 
   onShow() {
-    this.readDevice()
-    if (!this.startSensor()) this.startBrightness()
+    this.tagText = VARIANT + ' ' + VERSION
+    this.idx = 0
+    try {
+      this.scan()
+    } catch (e) {
+      note(e)
+      this.pageText = 'fallo scan: ' + lastErr
+    }
+    this.startBrightness()
   },
 
   onHide() {
-    this.stop()
-  },
-
-  onDestroy() {
-    this.stop()
-  },
-
-  stop() {
     if (timer) {
       clearInterval(timer)
       timer = null
     }
-    if (activeName && activeMod) {
+  },
+
+  onDestroy() {
+    this.onHide()
+  },
+
+  scan() {
+    const found = []
+    const lightHits = []
+    const sections = []
+
+    for (let i = 0; i < PROBE_MODULES.length; i++) {
+      const name = PROBE_MODULES[i]
+      let mod = requireModule(name)
+      if (mod === undefined) {
+        if (name === 'system.sensor') mod = sensor
+        if (name === 'system.brightness') mod = brightness
+        if (name === 'system.device') mod = device
+      }
+      if (mod === undefined || mod === null) continue
+
+      const short = name.replace('system.', '').replace('service.', 's:')
+      found.push(short)
+      const ks = keysOf(mod)
+      for (let j = 0; j < ks.length; j++) {
+        if (LIGHT_RE.test(ks[j])) lightHits.push(short + '.' + ks[j])
+      }
+      // Solo se detallan los modulos poco conocidos o relevantes.
+      if (ks.length && DETAIL_RE.test(name)) sections.push([short, ks.join(',')])
+    }
+
+    let pages = []
+    pages = pages.concat(chunk('LUZ?', lightHits.length ? lightHits.join(' ') : 'ninguna clave de luz'))
+    pages = pages.concat(chunk('modulos(' + found.length + ')', found.join(',')))
+    for (let i = 0; i < sections.length; i++) {
+      pages = pages.concat(chunk(sections[i][0], sections[i][1]))
+    }
+
+    // Claves del objeto global del runtime, por si hay algo util ahi.
+    try {
+      /* eslint-disable no-undef */
+      if (typeof global !== 'undefined') {
+        pages = pages.concat(chunk('global', keysOf(global).join(',')))
+      }
+      /* eslint-enable no-undef */
+    } catch (e) {
+      note(e)
+    }
+
+    this.pages = pages
+    this.render()
+  },
+
+  render() {
+    if (!this.pages || !this.pages.length) {
+      this.pageText = 'sin datos'
+      return
+    }
+    this.pageText = this.pages[this.idx]
+    this.footText = (this.idx + 1) + '/' + this.pages.length + (lastErr ? ' e:' + lastErr : '')
+  },
+
+  nextPage() {
+    if (!this.pages || !this.pages.length) return
+    this.idx = (this.idx + 1) % this.pages.length
+    this.render()
+  },
+
+  startBrightness() {
+    const self = this
+    if (!brightness || typeof brightness.getValue !== 'function') return
+    const read = function () {
       try {
-        const stopName = activeName.replace('subscribe', 'unsubscribe')
-        if (typeof activeMod[stopName] === 'function') activeMod[stopName]()
+        brightness.getValue({
+          success(data) {
+            const v = data && typeof data.value === 'number' ? data.value : -1
+            if (v < 0) return
+            self.percentText = Math.round((v / 255) * 100) + '%'
+            self.sourceText = 'brillo ' + v + '/255'
+          }
+        })
       } catch (e) {
         note(e)
       }
     }
-    activeName = ''
-    activeMod = null
-  },
-
-  // --- fuente 1: sensor de luz real, si el firmware lo expone ---
-  startSensor() {
-    const self = this
-    const mods = [sensor, requireModule('system.sensor')]
-    for (let m = 0; m < mods.length; m++) {
-      const mod = mods[m]
-      if (mod === undefined || mod === null) continue
-      for (let i = 0; i < SUBSCRIBE_NAMES.length; i++) {
-        const name = SUBSCRIBE_NAMES[i]
-        let fn
-        try {
-          fn = mod[name]
-        } catch (e) {
-          note(e)
-          continue
-        }
-        if (typeof fn !== 'function') continue
-        try {
-          mod[name]({
-            callback(ret) {
-              const lux = readLux(ret)
-              if (lux < 0) return
-              self.percentText = luxToPercent(lux) + '%'
-              self.sourceText = Math.round(lux) + ' lx'
-            }
-          })
-          activeName = name
-          activeMod = mod
-          return true
-        } catch (e) {
-          note(e)
-        }
-      }
-    }
-    return false
-  },
-
-  // --- fuente 2: brillo automatico de pantalla como aproximacion ---
-  startBrightness() {
-    const self = this
-    if (!brightness || typeof brightness.getValue !== 'function') {
-      this.percentText = '--%'
-      this.sourceText = 'sin sensor ni brillo'
-      return
-    }
-
-    this.checkMode()
-    this.tick()
-    timer = setInterval(function () {
-      self.tick()
-    }, POLL_MS)
-  },
-
-  checkMode() {
-    const self = this
-    try {
-      brightness.getMode({
-        success(data) {
-          const m = data && data.mode !== undefined ? data.mode : data && data.value
-          autoMode = typeof m === 'number' ? m : -1
-          self.hintText = autoMode === 1 ? '' : 'toca para activar brillo automatico'
-        },
-        fail(data, code) {
-          note('getMode ' + code)
-        }
-      })
-    } catch (e) {
-      note(e)
-    }
-  },
-
-  tick() {
-    const self = this
-    try {
-      brightness.getValue({
-        success(data) {
-          const v = data && typeof data.value === 'number' ? data.value : -1
-          if (v < 0) {
-            self.sourceText = 'brillo sin valor'
-            return
-          }
-          if (v > maxSeen) maxSeen = v
-          // El brillo va 0-100 o 0-255 segun firmware: se deduce del maximo visto.
-          const scale = maxSeen > 100 ? 255 : 100
-          let pct = Math.round((v / scale) * 100)
-          if (pct > 100) pct = 100
-          if (pct < 0) pct = 0
-          self.percentText = pct + '%'
-          self.sourceText = 'brillo ' + v + '/' + scale + (autoMode === 1 ? ' auto' : ' manual')
-        },
-        fail(data, code) {
-          self.sourceText = 'getValue fail ' + code
-        }
-      })
-    } catch (e) {
-      note(e)
-      this.sourceText = 'error brillo'
-    }
-  },
-
-  // Tocar la pantalla activa el brillo automatico (sin el, el valor no cambia).
-  onTap() {
-    if (activeName) return
-    try {
-      if (typeof brightness.setMode === 'function') {
-        const self = this
-        brightness.setMode({
-          mode: 1,
-          success() {
-            autoMode = 1
-            self.hintText = 'brillo automatico ON'
-            maxSeen = 0
-          },
-          fail(data, code) {
-            self.hintText = 'setMode fail ' + code
-          }
-        })
-      }
-    } catch (e) {
-      note(e)
-    }
-  },
-
-  readDevice() {
-    const self = this
-    try {
-      if (device && typeof device.getInfo === 'function') {
-        device.getInfo({
-          success(d) {
-            const parts = []
-            if (d.model) parts.push(d.model)
-            if (d.osVersion) parts.push('os' + d.osVersion)
-            if (d.platformVersionCode) parts.push('pv' + d.platformVersionCode)
-            if (d.apiLevel) parts.push('api' + d.apiLevel)
-            self.diagText = parts.join(' ') + (lastErr ? ' | ' + lastErr : '')
-          },
-          fail(data, code) {
-            self.diagText = 'getInfo fail ' + code
-          }
-        })
-      }
-    } catch (e) {
-      note(e)
-    }
+    read()
+    timer = setInterval(read, POLL_MS)
   }
 }
 </script>
@@ -249,38 +219,44 @@ export default {
 <style>
 .page {
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   width: 100%;
   height: 100%;
   background-color: #000000;
   padding: 6px;
+  padding-top: 10px;
+}
+
+.tag {
+  font-size: 16px;
+  color: #ff7043;
+  text-align: center;
 }
 
 .big {
-  font-size: 76px;
+  font-size: 40px;
   color: #ffffff;
   text-align: center;
 }
 
 .line {
-  font-size: 20px;
+  font-size: 14px;
   color: #cccccc;
+  text-align: center;
+}
+
+.body {
+  font-size: 11px;
+  color: #8ab4f8;
   text-align: center;
   margin-top: 6px;
 }
 
-.hint {
-  font-size: 15px;
-  color: #ffb74d;
-  text-align: center;
-  margin-top: 8px;
-}
-
-.tiny {
+.foot {
   font-size: 11px;
   color: #777777;
   text-align: center;
-  margin-top: 10px;
+  margin-top: 4px;
 }
 </style>
