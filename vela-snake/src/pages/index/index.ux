@@ -1,5 +1,5 @@
 <template>
-  <stack class="page" onswipe="onSwipe" ontouchstart="onTouchStart" ontouchend="onTouchEnd" onlongpress="onLongPress" onclick="onTap">
+  <stack class="page" onswipe="onSwipe" ontouchstart="onTouchStart" ontouchend="onTouchEnd" onlongpress="onLongPress">
     <div class="layer">
       <div class="header">
         <text class="score">{{score}}</text>
@@ -28,7 +28,8 @@
 
     <div class="overlay" if="{{over}}">
       <text class="over1">GAME OVER</text>
-      <text class="over2">{{score}} puntos</text>
+      <text class="bigscore">{{score}}</text>
+      <text class="over2">{{overBest}}</text>
       <div class="buttons">
         <text class="btn play" onclick="onPlay">JUGAR</text>
         <text class="btn quit" onclick="onQuit">SALIR</text>
@@ -102,6 +103,7 @@ export default {
     arrow: '>',
     over: false,
     inputInfo: '',
+    overBest: '',
     c0: 'e', c1: 'e', c2: 'e', c3: 'e', c4: 'e', c5: 'e', c6: 'e', c7: 'e', c8: 'e', c9: 'e', c10: 'e', c11: 'e',
     c12: 'e', c13: 'e', c14: 'e', c15: 'e', c16: 'e', c17: 'e', c18: 'e', c19: 'e', c20: 'e', c21: 'e', c22: 'e', c23: 'e',
     c24: 'e', c25: 'e', c26: 'e', c27: 'e', c28: 'e', c29: 'e', c30: 'e', c31: 'e', c32: 'e', c33: 'e', c34: 'e', c35: 'e',
@@ -250,6 +252,7 @@ export default {
     this.stopLoop()
     this.over = true
     this.inputInfo = VARIANT + ' - ' + lastInput + ' - paso ' + tickMs + '/' + speed + 'ms'
+    this.overBest = this.score >= this.best && this.score > 0 ? 'nuevo record' : 'max ' + Math.max(this.best, this.score)
     buzz(200)
     this.saveBest()
   },
@@ -309,10 +312,6 @@ export default {
     if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return
     if (Math.abs(dx) > Math.abs(dy)) this.setDir(dx > 0 ? 'right' : 'left', 'touch')
     else this.setDir(dy > 0 ? 'down' : 'up', 'touch')
-  },
-
-  onTap() {
-    if (this.over) this.reset()
   },
 
   onPlay() {
@@ -390,32 +389,33 @@ export default {
 
 .header {
   width: 336px;
-  height: 32px;
+  height: 38px;
   align-items: center;
   justify-content: space-between;
-  padding-left: 12px;
-  padding-right: 12px;
+  padding-left: 14px;
+  padding-right: 14px;
 }
 
 .score {
-  font-size: 22px;
+  font-size: 30px;
+  font-weight: bold;
   color: #ffffff;
 }
 
 .arrow {
-  font-size: 20px;
+  font-size: 24px;
   color: #69f0ae;
 }
 
 .best {
-  font-size: 13px;
-  color: #666666;
+  font-size: 16px;
+  color: #8a8a8a;
 }
 
 .board {
   flex-direction: column;
   width: 336px;
-  height: 448px;
+  height: 442px;
 }
 
 .row {
@@ -455,35 +455,43 @@ export default {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: #000000dd;
+  background-color: #000000fa;
 }
 
 .over1 {
-  font-size: 28px;
+  font-size: 30px;
+  font-weight: bold;
   color: #ff5252;
 }
 
-.over2 {
-  font-size: 20px;
+.bigscore {
+  font-size: 62px;
+  font-weight: bold;
   color: #ffffff;
-  margin-top: 6px;
+  margin-top: 2px;
+}
+
+.over2 {
+  font-size: 18px;
+  color: #9e9e9e;
 }
 
 .buttons {
   flex-direction: row;
   justify-content: center;
-  margin-top: 18px;
+  margin-top: 22px;
 }
 
 .btn {
-  font-size: 18px;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 16px;
-  padding-right: 16px;
-  border-radius: 8px;
-  margin-left: 6px;
-  margin-right: 6px;
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+  height: 52px;
+  width: 130px;
+  padding-top: 12px;
+  border-radius: 12px;
+  margin-left: 8px;
+  margin-right: 8px;
 }
 
 .play {
@@ -498,7 +506,7 @@ export default {
 
 .over4 {
   font-size: 10px;
-  color: #666666;
-  margin-top: 18px;
+  color: #4a4a4a;
+  margin-top: 20px;
 }
 </style>

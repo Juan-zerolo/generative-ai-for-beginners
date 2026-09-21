@@ -5,8 +5,8 @@ derecha), como el de Google en el móvil.
 
 ## Archivos listos para instalar
 
-- `dist/com.claude.snake.release.1.3.0.rpk` — se instala como **«REL Snake»**.
-- `dist/com.claude.snake.debug.1.3.0.rpk` — se instala como **«DBG Snake»**.
+- `dist/com.claude.snake.release.1.4.0.rpk` — se instala como **«REL Snake»**.
+- `dist/com.claude.snake.debug.1.4.0.rpk` — se instala como **«DBG Snake»**.
 
 En la pantalla de game over aparece abajo, en gris pequeño, la variante y la
 última entrada recibida (`RELEASE · swipe:up`, `DEBUG · touch:left`, o
@@ -22,7 +22,8 @@ En la pantalla de game over aparece abajo, en gris pequeño, la variante y la
 - El giro se aplica al instante si ya ha pasado medio paso, en vez de esperar
   al siguiente: quita casi toda la latencia percibida.
 - Chocar con la pared o con el propio cuerpo termina la partida. En game over
-  hay dos botones, JUGAR y SALIR.
+  hay dos botones, JUGAR y SALIR; hay que pulsar JUGAR para otra partida (un
+  toque en cualquier sitio ya no reinicia, que provocaba partidas sin querer).
 - **Salir en cualquier momento: mantén pulsada la pantalla** (`onlongpress` →
   `app.terminate()`, con `router.back()` de respaldo). Hacía falta porque el
   manejador de gestos de la app se come el gesto de retroceso del sistema.
@@ -95,6 +96,13 @@ El dibujo actual no depende de eso:
   respaldo, `touchstart` + `touchend` deduciendo la dirección del
   desplazamiento con umbral de 18 px. Si una de las dos vías no existe en el
   firmware, la otra cubre el control.
+
+## Icono
+
+`python3 tools/make-icon.py` genera `src/common/icon.png`: círculo verde
+oscuro con la serpiente en bloques y la manzana, dibujado a 512 px y reducido
+a 128. Fuera del círculo es transparente, para que en el lanzador se vea
+redondo como los iconos del sistema en vez de como un cuadrado blanco.
 
 ## Probar la lógica sin el reloj
 
