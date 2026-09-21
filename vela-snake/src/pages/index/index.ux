@@ -1,20 +1,38 @@
 <template>
-  <stack class="page" onswipe="onSwipe" ontouchstart="onTouchStart" ontouchend="onTouchEnd" onclick="onTap">
+  <stack class="page" onswipe="onSwipe" ontouchstart="onTouchStart" ontouchend="onTouchEnd" onlongpress="onLongPress" onclick="onTap">
     <div class="layer">
       <div class="header">
         <text class="score">{{score}}</text>
         <text class="arrow">{{arrow}}</text>
         <text class="best">{{bestText}}</text>
       </div>
-      <stack class="board">
-        <div class="cell {{item.cls}}" for="{{cells}}" style="margin-left: {{item.x}}px; margin-top: {{item.y}}px"></div>
-      </stack>
+      <div class="board">
+        <div class="row"><div class="c {{$item}}" for="{{r0}}"></div></div>
+        <div class="row"><div class="c {{$item}}" for="{{r1}}"></div></div>
+        <div class="row"><div class="c {{$item}}" for="{{r2}}"></div></div>
+        <div class="row"><div class="c {{$item}}" for="{{r3}}"></div></div>
+        <div class="row"><div class="c {{$item}}" for="{{r4}}"></div></div>
+        <div class="row"><div class="c {{$item}}" for="{{r5}}"></div></div>
+        <div class="row"><div class="c {{$item}}" for="{{r6}}"></div></div>
+        <div class="row"><div class="c {{$item}}" for="{{r7}}"></div></div>
+        <div class="row"><div class="c {{$item}}" for="{{r8}}"></div></div>
+        <div class="row"><div class="c {{$item}}" for="{{r9}}"></div></div>
+        <div class="row"><div class="c {{$item}}" for="{{r10}}"></div></div>
+        <div class="row"><div class="c {{$item}}" for="{{r11}}"></div></div>
+        <div class="row"><div class="c {{$item}}" for="{{r12}}"></div></div>
+        <div class="row"><div class="c {{$item}}" for="{{r13}}"></div></div>
+        <div class="row"><div class="c {{$item}}" for="{{r14}}"></div></div>
+        <div class="row"><div class="c {{$item}}" for="{{r15}}"></div></div>
+      </div>
     </div>
 
     <div class="overlay" if="{{over}}">
       <text class="over1">GAME OVER</text>
       <text class="over2">{{score}} puntos</text>
-      <text class="over3">toca para jugar</text>
+      <div class="buttons">
+        <text class="btn play" onclick="onPlay">JUGAR</text>
+        <text class="btn quit" onclick="onQuit">SALIR</text>
+      </div>
       <text class="over4">{{inputInfo}}</text>
     </div>
   </stack>
@@ -24,11 +42,11 @@
 import brightness from '@system.brightness'
 import vibrator from '@system.vibrator'
 import storage from '@system.storage'
+import app from '@system.app'
+import router from '@system.router'
 
-const COLS = 14
-const ROWS = 18
-const CELL = 24
-const POOL = 80          // celdas reutilizadas: 1 comida + cuerpo maximo
+const COLS = 12
+const ROWS = 16
 const SPEED_START = 260
 const SPEED_MIN = 110
 const SPEED_STEP = 7
@@ -38,22 +56,13 @@ const VARIANT = '__VARIANT__'
 let snake = []
 let dir = 'right'
 let pending = null
-let food = { x: 7, y: 9 }
+let food = { x: 6, y: 8 }
 let timer = null
 let speed = SPEED_START
 let running = false
 let touchX = 0
 let touchY = 0
 let lastInput = 'sin entrada'
-
-// Celdas reutilizadas: se mutan sus propiedades (reactivo) en vez de recrear la lista.
-function buildPool() {
-  const arr = []
-  for (let i = 0; i < POOL; i++) {
-    arr.push({ x: 0, y: 0, cls: 'off' })
-  }
-  return arr
-}
 
 function opposite(a, b) {
   return (a === 'up' && b === 'down') || (a === 'down' && b === 'up') ||
@@ -86,7 +95,22 @@ export default {
     arrow: '>',
     over: false,
     inputInfo: '',
-    cells: buildPool()
+    r0: [], 
+    r1: [], 
+    r2: [], 
+    r3: [], 
+    r4: [], 
+    r5: [], 
+    r6: [], 
+    r7: [], 
+    r8: [], 
+    r9: [], 
+    r10: [], 
+    r11: [], 
+    r12: [], 
+    r13: [], 
+    r14: [], 
+    r15: []
   },
 
   onInit() {
@@ -114,7 +138,7 @@ export default {
 
   reset() {
     const midY = Math.floor(ROWS / 2)
-    snake = [{ x: 4, y: midY }, { x: 3, y: midY }, { x: 2, y: midY }]
+    snake = [{ x: 3, y: midY }, { x: 2, y: midY }, { x: 1, y: midY }]
     dir = 'right'
     pending = null
     speed = SPEED_START
@@ -143,7 +167,7 @@ export default {
     }
   },
 
-  // Cambiar la velocidad exige recrear el intervalo.
+  // Cambiar de velocidad exige recrear el intervalo.
   retime() {
     if (running) this.startLoop()
   },
@@ -190,7 +214,7 @@ export default {
   gameOver() {
     this.stopLoop()
     this.over = true
-    this.inputInfo = VARIANT + ' · ' + lastInput
+    this.inputInfo = VARIANT + ' - ' + lastInput + ' - manten pulsado: salir'
     buzz(200)
     this.saveBest()
   },
@@ -213,23 +237,40 @@ export default {
     }
   },
 
+  // Cada fila es una propiedad de primer nivel que se REASIGNA entera: mutar
+  // objetos anidados del array no repinta en este runtime.
   draw() {
-    const cells = this.cells
-    let n = 0
-
-    cells[n].x = food.x * CELL
-    cells[n].y = food.y * CELL
-    cells[n].cls = 'food'
-    n++
-
-    for (let i = 0; i < snake.length && n < POOL; i++, n++) {
-      cells[n].x = snake[i].x * CELL
-      cells[n].y = snake[i].y * CELL
-      cells[n].cls = i === 0 ? 'head' : 'body'
+    const grid = []
+    for (let y = 0; y < ROWS; y++) {
+      const row = []
+      for (let x = 0; x < COLS; x++) row.push('e')
+      grid.push(row)
     }
-    for (; n < POOL; n++) {
-      cells[n].cls = 'off'
+
+    grid[food.y][food.x] = 'f'
+    for (let i = snake.length - 1; i >= 0; i--) {
+      const s = snake[i]
+      if (s.y >= 0 && s.y < ROWS && s.x >= 0 && s.x < COLS) {
+        grid[s.y][s.x] = i === 0 ? 'h' : 'b'
+      }
     }
+
+    this.r0 = grid[0]
+    this.r1 = grid[1]
+    this.r2 = grid[2]
+    this.r3 = grid[3]
+    this.r4 = grid[4]
+    this.r5 = grid[5]
+    this.r6 = grid[6]
+    this.r7 = grid[7]
+    this.r8 = grid[8]
+    this.r9 = grid[9]
+    this.r10 = grid[10]
+    this.r11 = grid[11]
+    this.r12 = grid[12]
+    this.r13 = grid[13]
+    this.r14 = grid[14]
+    this.r15 = grid[15]
   },
 
   // --- entrada ---
@@ -252,7 +293,7 @@ export default {
     touchY = p.y
   },
 
-  // Respaldo por si el evento swipe no llega: se deduce del desplazamiento.
+  // Respaldo por si el evento swipe no llegase.
   onTouchEnd(e) {
     const p = pointOf(e)
     if (!p) return
@@ -265,6 +306,34 @@ export default {
 
   onTap() {
     if (this.over) this.reset()
+  },
+
+  onPlay() {
+    this.reset()
+  },
+
+  // Salir: manten pulsado en cualquier momento, o boton SALIR al perder.
+  onLongPress() {
+    this.quit()
+  },
+
+  onQuit() {
+    this.quit()
+  },
+
+  quit() {
+    this.stopLoop()
+    try {
+      if (app && typeof app.terminate === 'function') return app.terminate()
+      if (app && typeof app.exit === 'function') return app.exit()
+    } catch (e) {
+      console.log('terminate: ' + e)
+    }
+    try {
+      if (router && typeof router.back === 'function') router.back()
+    } catch (e) {
+      console.log('back: ' + e)
+    }
   },
 
   // --- record ---
@@ -315,7 +384,7 @@ export default {
 
 .header {
   width: 336px;
-  height: 40px;
+  height: 32px;
   align-items: center;
   justify-content: space-between;
   padding-left: 12px;
@@ -323,49 +392,55 @@ export default {
 }
 
 .score {
-  font-size: 24px;
+  font-size: 22px;
   color: #ffffff;
 }
 
 .arrow {
-  font-size: 22px;
+  font-size: 20px;
   color: #69f0ae;
 }
 
 .best {
-  font-size: 14px;
+  font-size: 13px;
   color: #666666;
 }
 
 .board {
+  flex-direction: column;
   width: 336px;
-  height: 432px;
-  background-color: #060d06;
+  height: 448px;
 }
 
-.cell {
-  width: 24px;
-  height: 24px;
+.row {
+  flex-direction: row;
+  width: 336px;
+  height: 28px;
 }
 
-.head {
+.c {
+  width: 26px;
+  height: 26px;
+  margin: 1px;
+}
+
+.e {
+  background-color: #0d0d0d;
+}
+
+.h {
   background-color: #69f0ae;
   border-radius: 7px;
 }
 
-.body {
+.b {
   background-color: #2e7d32;
   border-radius: 5px;
 }
 
-.food {
+.f {
   background-color: #ff5252;
-  border-radius: 12px;
-}
-
-.off {
-  width: 0px;
-  height: 0px;
+  border-radius: 13px;
 }
 
 .overlay {
@@ -374,29 +449,50 @@ export default {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: #000000cc;
+  background-color: #000000dd;
 }
 
 .over1 {
-  font-size: 30px;
+  font-size: 28px;
   color: #ff5252;
 }
 
 .over2 {
-  font-size: 22px;
+  font-size: 20px;
   color: #ffffff;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
-.over3 {
-  font-size: 16px;
-  color: #9e9e9e;
-  margin-top: 14px;
+.buttons {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.btn {
+  font-size: 18px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 16px;
+  padding-right: 16px;
+  border-radius: 8px;
+  margin-left: 6px;
+  margin-right: 6px;
+}
+
+.play {
+  color: #000000;
+  background-color: #69f0ae;
+}
+
+.quit {
+  color: #ffffff;
+  background-color: #444444;
 }
 
 .over4 {
-  font-size: 11px;
-  color: #555555;
-  margin-top: 16px;
+  font-size: 10px;
+  color: #666666;
+  margin-top: 18px;
 }
 </style>
