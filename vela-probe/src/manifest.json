@@ -1,0 +1,211 @@
+{
+  "package": "com.claude.probe",
+  "name": "Sonda",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "minPlatformVersion": 1000,
+  "icon": "/common/icon.png",
+  "deviceTypeList": [
+    "watch"
+  ],
+  "features": [
+    {
+      "name": "system.app"
+    },
+    {
+      "name": "system.router"
+    },
+    {
+      "name": "system.device"
+    },
+    {
+      "name": "system.configuration"
+    },
+    {
+      "name": "system.prompt"
+    },
+    {
+      "name": "system.shortcut"
+    },
+    {
+      "name": "system.package"
+    },
+    {
+      "name": "system.update"
+    },
+    {
+      "name": "system.event"
+    },
+    {
+      "name": "system.resident"
+    },
+    {
+      "name": "system.debug"
+    },
+    {
+      "name": "system.log"
+    },
+    {
+      "name": "system.storage"
+    },
+    {
+      "name": "system.file"
+    },
+    {
+      "name": "system.clipboard"
+    },
+    {
+      "name": "system.cipher"
+    },
+    {
+      "name": "system.fetch"
+    },
+    {
+      "name": "system.request"
+    },
+    {
+      "name": "system.network"
+    },
+    {
+      "name": "system.wifi"
+    },
+    {
+      "name": "system.websocketfactory"
+    },
+    {
+      "name": "system.interconnect"
+    },
+    {
+      "name": "system.bluetooth"
+    },
+    {
+      "name": "system.ble"
+    },
+    {
+      "name": "system.brightness"
+    },
+    {
+      "name": "system.volume"
+    },
+    {
+      "name": "system.vibrator"
+    },
+    {
+      "name": "system.battery"
+    },
+    {
+      "name": "system.power"
+    },
+    {
+      "name": "system.screen"
+    },
+    {
+      "name": "system.display"
+    },
+    {
+      "name": "system.keyguard"
+    },
+    {
+      "name": "system.watchface"
+    },
+    {
+      "name": "system.theme"
+    },
+    {
+      "name": "system.audio"
+    },
+    {
+      "name": "system.media"
+    },
+    {
+      "name": "system.video"
+    },
+    {
+      "name": "system.record"
+    },
+    {
+      "name": "system.camera"
+    },
+    {
+      "name": "system.image"
+    },
+    {
+      "name": "system.barcode"
+    },
+    {
+      "name": "system.sensor"
+    },
+    {
+      "name": "system.geolocation"
+    },
+    {
+      "name": "system.health"
+    },
+    {
+      "name": "system.fitness"
+    },
+    {
+      "name": "system.sport"
+    },
+    {
+      "name": "system.stepcounter"
+    },
+    {
+      "name": "system.heartrate"
+    },
+    {
+      "name": "system.sleep"
+    },
+    {
+      "name": "system.motion"
+    },
+    {
+      "name": "system.compass"
+    },
+    {
+      "name": "system.alarm"
+    },
+    {
+      "name": "system.timer"
+    },
+    {
+      "name": "system.notification"
+    },
+    {
+      "name": "system.calendar"
+    },
+    {
+      "name": "system.share"
+    },
+    {
+      "name": "system.contact"
+    },
+    {
+      "name": "system.sms"
+    },
+    {
+      "name": "system.telecom"
+    },
+    {
+      "name": "system.webview"
+    },
+    {
+      "name": "system.ai"
+    },
+    {
+      "name": "system.voice"
+    }
+  ],
+  "config": {
+    "logLevel": "log",
+    "designWidth": 336
+  },
+  "router": {
+    "entry": "pages/index",
+    "pages": {
+      "pages/index": {
+        "component": "index"
+      }
+    }
+  }
+}

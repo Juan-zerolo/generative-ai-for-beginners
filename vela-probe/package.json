@@ -1,0 +1,8 @@
+{
+  "name": "vela-probe",
+  "version": "1.0.0",
+  "description": "Sondeo completo de capacidades de una banda Xiaomi Vela",
+  "private": true,
+  "scripts": { "build": "aiot build", "release": "aiot release" },
+  "devDependencies": { "aiot-toolkit": "2.0.5" }
+}

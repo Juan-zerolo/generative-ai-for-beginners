@@ -1,0 +1,462 @@
+<template>
+  <div class="page" onlongpress="onQuit">
+    <text class="title">SONDA {{variant}} · {{pageNo}}</text>
+    <text class="body">{{pageText}}</text>
+    <div class="spacer"></div>
+    <div class="buttons">
+      <text class="btn nav" onclick="onNext">SIG</text>
+      <text class="btn net" onclick="onNet">RED</text>
+      <text class="btn quit" onclick="onQuit">SALIR</text>
+    </div>
+  </div>
+</template>
+
+<script>
+import app from '@system.app'
+import device from '@system.device'
+import router from '@system.router'
+import storage from '@system.storage'
+import file from '@system.file'
+import brightness from '@system.brightness'
+import network from '@system.network'
+import battery from '@system.battery'
+import fetchMod from '@system.fetch'
+
+const VARIANT = '__VARIANT__'
+const CHUNK = 430
+
+// Misma lista que manifest.json: el runtime solo inyecta lo declarado.
+const PROBE = [
+  'system.app',
+  'system.router',
+  'system.device',
+  'system.configuration',
+  'system.prompt',
+  'system.shortcut',
+  'system.package',
+  'system.update',
+  'system.event',
+  'system.resident',
+  'system.debug',
+  'system.log',
+  'system.storage',
+  'system.file',
+  'system.clipboard',
+  'system.cipher',
+  'system.fetch',
+  'system.request',
+  'system.network',
+  'system.wifi',
+  'system.websocketfactory',
+  'system.interconnect',
+  'system.bluetooth',
+  'system.ble',
+  'system.brightness',
+  'system.volume',
+  'system.vibrator',
+  'system.battery',
+  'system.power',
+  'system.screen',
+  'system.display',
+  'system.keyguard',
+  'system.watchface',
+  'system.theme',
+  'system.audio',
+  'system.media',
+  'system.video',
+  'system.record',
+  'system.camera',
+  'system.image',
+  'system.barcode',
+  'system.sensor',
+  'system.geolocation',
+  'system.health',
+  'system.fitness',
+  'system.sport',
+  'system.stepcounter',
+  'system.heartrate',
+  'system.sleep',
+  'system.motion',
+  'system.compass',
+  'system.alarm',
+  'system.timer',
+  'system.notification',
+  'system.calendar',
+  'system.share',
+  'system.contact',
+  'system.sms',
+  'system.telecom',
+  'system.webview',
+  'system.ai',
+  'system.voice'
+]
+
+const STATIC = {
+  'system.app': app,
+  'system.device': device,
+  'system.router': router,
+  'system.storage': storage,
+  'system.file': file,
+  'system.brightness': brightness,
+  'system.network': network,
+  'system.battery': battery,
+  'system.fetch': fetchMod
+}
+
+let mods = {}        // nombre corto -> modulo resuelto
+let present = []
+let sections = []    // [titulo, cuerpo]
+let live = {}        // resultados de las pruebas en vivo
+
+function requireModule(name) {
+  try {
+    /* eslint-disable no-undef */
+    if (typeof $app_require$ === 'function') {
+      const m = $app_require$('@app-module/' + name)
+      return m && m.default ? m.default : m
+    }
+    /* eslint-enable no-undef */
+  } catch (e) {
+    return undefined
+  }
+  return undefined
+}
+
+function keysOf(obj) {
+  const out = []
+  if (obj === undefined || obj === null) return out
+  const push = function (k) {
+    if (k !== 'constructor' && out.indexOf(k) < 0) out.push(k)
+  }
+  try {
+    for (const k in obj) push(k)
+  } catch (e) { /* vacio */ }
+  try {
+    Object.getOwnPropertyNames(obj).forEach(push)
+  } catch (e) { /* vacio */ }
+  try {
+    const p = Object.getPrototypeOf(obj)
+    if (p && p !== Object.prototype) Object.getOwnPropertyNames(p).forEach(push)
+  } catch (e) { /* vacio */ }
+  return out
+}
+
+function dump(obj, max) {
+  try {
+    const s = JSON.stringify(obj)
+    return s ? s.slice(0, max || 260) : '' + obj
+  } catch (e) {
+    return '' + obj
+  }
+}
+
+export default {
+  private: {
+    variant: '',
+    pageNo: '',
+    pageText: 'sondeando...',
+    pages: [],
+    idx: 0
+  },
+
+  onShow() {
+    this.variant = VARIANT
+    try {
+      brightness.setKeepScreenOn({ keepScreenOn: true })
+    } catch (e) { /* vacio */ }
+    this.scan()
+    this.liveTests()
+  },
+
+  // --- 1. que modulos existen y con que metodos ---
+
+  scan() {
+    mods = {}
+    present = []
+    sections = []
+    const missing = []
+
+    for (let i = 0; i < PROBE.length; i++) {
+      const name = PROBE[i]
+      let m = requireModule(name)
+      if (m === undefined && STATIC[name]) m = STATIC[name]
+      const short = name.replace('system.', '')
+      if (m === undefined || m === null) {
+        missing.push(short)
+        continue
+      }
+      mods[short] = m
+      present.push(short)
+      const ks = keysOf(m)
+      sections.push([short + ' (' + ks.length + ')', ks.join(',') || 'sin metodos'])
+    }
+
+    sections.unshift(['NO estan (' + missing.length + ')', missing.join(',')])
+    sections.unshift(['SI estan (' + present.length + '/' + PROBE.length + ')', present.join(',')])
+    this.build()
+  },
+
+  // --- 2. pruebas en vivo de lo que si existe ---
+
+  liveTests() {
+    const self = this
+
+    // Informacion del dispositivo: modelo, version de plataforma, pantalla.
+    this.call('device', 'getInfo', {}, 'device.getInfo')
+
+    // Ida y vuelta de almacenamiento.
+    if (mods.storage && typeof mods.storage.set === 'function') {
+      try {
+        mods.storage.set({
+          key: 'probe',
+          value: 'v42',
+          success() {
+            mods.storage.get({
+              key: 'probe',
+              success(v) {
+                live['storage'] = v === 'v42' ? 'escribe y lee OK (' + v + ')' : 'devuelve ' + dump(v, 40)
+                self.build()
+              },
+              fail(d, c) {
+                live['storage'] = 'get fail ' + c
+                self.build()
+              }
+            })
+          },
+          fail(d, c) {
+            live['storage'] = 'set fail ' + c
+            self.build()
+          }
+        })
+      } catch (e) {
+        live['storage'] = 'excepcion ' + e
+      }
+    }
+
+    // Escritura y lectura de un fichero interno.
+    if (mods.file && typeof mods.file.writeText === 'function') {
+      try {
+        mods.file.writeText({
+          uri: 'internal://files/probe.txt',
+          text: 'hola-sonda',
+          success() {
+            mods.file.readText({
+              uri: 'internal://files/probe.txt',
+              success(r) {
+                live['file'] = 'escribe y lee OK (' + dump(r && r.text ? r.text : r, 30) + ')'
+                self.build()
+              },
+              fail(d, c) {
+                live['file'] = 'readText fail ' + c
+                self.build()
+              }
+            })
+          },
+          fail(d, c) {
+            live['file'] = 'writeText fail ' + c
+            self.build()
+          }
+        })
+      } catch (e) {
+        live['file'] = 'excepcion ' + e
+      }
+    }
+
+    this.call('battery', 'getStatus', {}, 'battery.getStatus')
+    this.call('network', 'getType', {}, 'network.getType')
+    this.call('device', 'getDeviceId', {}, 'device.getDeviceId')
+    this.call('configuration', 'getLocale', {}, 'configuration.getLocale')
+
+    setTimeout(function () {
+      const keys = ['device.getInfo', 'battery.getStatus', 'network.getType',
+        'device.getDeviceId', 'configuration.getLocale', 'storage', 'file']
+      for (let i = 0; i < keys.length; i++) {
+        const base = keys[i].indexOf('.') >= 0 ? keys[i].split('.')[0] : keys[i]
+        // Solo se marca lo que existe y no contesto; lo que no existe ya sale
+        // en la lista de modulos ausentes.
+        if (live[keys[i]] === undefined && mods[base]) live[keys[i]] = 'sin respuesta'
+      }
+      self.build()
+    }, 6000)
+  },
+
+  // Llama a modulo.metodo con callbacks y guarda el resultado con su etiqueta.
+  call(modName, method, extra, label) {
+    const self = this
+    const m = mods[modName]
+    if (!m || typeof m[method] !== 'function') return
+    const opts = {
+      success(res) {
+        live[label] = dump(res, 300)
+        self.build()
+      },
+      fail(d, c) {
+        live[label] = 'fail ' + c + ' ' + dump(d, 60)
+        self.build()
+      }
+    }
+    for (const k in extra) opts[k] = extra[k]
+    try {
+      m[method](opts)
+    } catch (e) {
+      live[label] = 'excepcion ' + ('' + e).slice(0, 50)
+    }
+  },
+
+  // Prueba de internet real, a peticion: la banda sale a traves del telefono.
+  onNet() {
+    const self = this
+    const f = mods.fetch || mods.request
+    if (!f) {
+      live['RED'] = 'sin modulo fetch/request'
+      return this.build(true)
+    }
+    live['RED'] = 'probando...'
+    this.build(true)
+    const method = typeof f.fetch === 'function' ? 'fetch' : 'request'
+    try {
+      f[method]({
+        url: 'https://example.com',
+        method: 'GET',
+        success(res) {
+          live['RED'] = 'OK code=' + (res && res.code) + ' len=' +
+            (res && res.data ? ('' + res.data).length : '?')
+          self.build(true)
+        },
+        fail(d, c) {
+          live['RED'] = 'fail ' + c + ' ' + dump(d, 60)
+          self.build(true)
+        }
+      })
+    } catch (e) {
+      live['RED'] = 'excepcion ' + ('' + e).slice(0, 50)
+      this.build(true)
+    }
+    setTimeout(function () {
+      if (live['RED'] === 'probando...') {
+        live['RED'] = 'sin respuesta en 10s'
+        self.build(true)
+      }
+    }, 10000)
+  },
+
+  // --- 3. paginado ---
+
+  build(jumpToLive) {
+    const out = []
+    const all = sections.slice()
+
+    const liveKeys = []
+    for (const k in live) liveKeys.push(k)
+    let liveIndex = -1
+    if (liveKeys.length) {
+      const lines = []
+      for (let i = 0; i < liveKeys.length; i++) lines.push(liveKeys[i] + ': ' + live[liveKeys[i]])
+      all.push(['PRUEBAS EN VIVO', lines.join('  |  ')])
+    }
+
+    for (let i = 0; i < all.length; i++) {
+      const title = all[i][0]
+      const body = all[i][1] || '-'
+      if (title === 'PRUEBAS EN VIVO') liveIndex = out.length
+      for (let c = 0; c < body.length; c += CHUNK) {
+        out.push(title + (c ? ' +' : '') + '\n' + body.slice(c, c + CHUNK))
+      }
+    }
+
+    this.pages = out
+    if (jumpToLive && liveIndex >= 0) this.idx = liveIndex
+    if (this.idx >= out.length) this.idx = 0
+    this.render()
+  },
+
+  render() {
+    const p = this.pages
+    if (!p || !p.length) {
+      this.pageText = 'sin datos'
+      return
+    }
+    this.pageText = p[this.idx]
+    this.pageNo = (this.idx + 1) + '/' + p.length
+  },
+
+  onNext() {
+    if (!this.pages || !this.pages.length) return
+    this.idx = (this.idx + 1) % this.pages.length
+    this.render()
+  },
+
+  onQuit() {
+    try {
+      if (app && typeof app.terminate === 'function') return app.terminate()
+    } catch (e) { /* vacio */ }
+    try {
+      if (router && typeof router.back === 'function') router.back()
+    } catch (e) { /* vacio */ }
+  }
+}
+</script>
+
+<style>
+.page {
+  flex-direction: column;
+  width: 336px;
+  height: 480px;
+  background-color: #000000;
+  align-items: center;
+  padding-top: 8px;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.title {
+  font-size: 14px;
+  color: #ff7043;
+  text-align: center;
+}
+
+.body {
+  font-size: 13px;
+  color: #d0d0d0;
+  text-align: center;
+  margin-top: 6px;
+  width: 324px;
+}
+
+.spacer {
+  flex-grow: 1;
+}
+
+.buttons {
+  flex-direction: row;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.btn {
+  font-size: 17px;
+  font-weight: bold;
+  text-align: center;
+  height: 44px;
+  width: 100px;
+  padding-top: 11px;
+  border-radius: 10px;
+  margin-left: 3px;
+  margin-right: 3px;
+}
+
+.nav {
+  color: #000000;
+  background-color: #69f0ae;
+}
+
+.net {
+  color: #000000;
+  background-color: #8ab4f8;
+}
+
+.quit {
+  color: #ffffff;
+  background-color: #444444;
+}
+</style>
