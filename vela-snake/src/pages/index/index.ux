@@ -7,22 +7,22 @@
         <text class="best">{{bestText}}</text>
       </div>
       <div class="board">
-        <div class="row"><div class="c {{$item}}" for="{{r0}}"></div></div>
-        <div class="row"><div class="c {{$item}}" for="{{r1}}"></div></div>
-        <div class="row"><div class="c {{$item}}" for="{{r2}}"></div></div>
-        <div class="row"><div class="c {{$item}}" for="{{r3}}"></div></div>
-        <div class="row"><div class="c {{$item}}" for="{{r4}}"></div></div>
-        <div class="row"><div class="c {{$item}}" for="{{r5}}"></div></div>
-        <div class="row"><div class="c {{$item}}" for="{{r6}}"></div></div>
-        <div class="row"><div class="c {{$item}}" for="{{r7}}"></div></div>
-        <div class="row"><div class="c {{$item}}" for="{{r8}}"></div></div>
-        <div class="row"><div class="c {{$item}}" for="{{r9}}"></div></div>
-        <div class="row"><div class="c {{$item}}" for="{{r10}}"></div></div>
-        <div class="row"><div class="c {{$item}}" for="{{r11}}"></div></div>
-        <div class="row"><div class="c {{$item}}" for="{{r12}}"></div></div>
-        <div class="row"><div class="c {{$item}}" for="{{r13}}"></div></div>
-        <div class="row"><div class="c {{$item}}" for="{{r14}}"></div></div>
-        <div class="row"><div class="c {{$item}}" for="{{r15}}"></div></div>
+        <div class="row"><div class="c {{c0}}"></div><div class="c {{c1}}"></div><div class="c {{c2}}"></div><div class="c {{c3}}"></div><div class="c {{c4}}"></div><div class="c {{c5}}"></div><div class="c {{c6}}"></div><div class="c {{c7}}"></div><div class="c {{c8}}"></div><div class="c {{c9}}"></div><div class="c {{c10}}"></div><div class="c {{c11}}"></div></div>
+        <div class="row"><div class="c {{c12}}"></div><div class="c {{c13}}"></div><div class="c {{c14}}"></div><div class="c {{c15}}"></div><div class="c {{c16}}"></div><div class="c {{c17}}"></div><div class="c {{c18}}"></div><div class="c {{c19}}"></div><div class="c {{c20}}"></div><div class="c {{c21}}"></div><div class="c {{c22}}"></div><div class="c {{c23}}"></div></div>
+        <div class="row"><div class="c {{c24}}"></div><div class="c {{c25}}"></div><div class="c {{c26}}"></div><div class="c {{c27}}"></div><div class="c {{c28}}"></div><div class="c {{c29}}"></div><div class="c {{c30}}"></div><div class="c {{c31}}"></div><div class="c {{c32}}"></div><div class="c {{c33}}"></div><div class="c {{c34}}"></div><div class="c {{c35}}"></div></div>
+        <div class="row"><div class="c {{c36}}"></div><div class="c {{c37}}"></div><div class="c {{c38}}"></div><div class="c {{c39}}"></div><div class="c {{c40}}"></div><div class="c {{c41}}"></div><div class="c {{c42}}"></div><div class="c {{c43}}"></div><div class="c {{c44}}"></div><div class="c {{c45}}"></div><div class="c {{c46}}"></div><div class="c {{c47}}"></div></div>
+        <div class="row"><div class="c {{c48}}"></div><div class="c {{c49}}"></div><div class="c {{c50}}"></div><div class="c {{c51}}"></div><div class="c {{c52}}"></div><div class="c {{c53}}"></div><div class="c {{c54}}"></div><div class="c {{c55}}"></div><div class="c {{c56}}"></div><div class="c {{c57}}"></div><div class="c {{c58}}"></div><div class="c {{c59}}"></div></div>
+        <div class="row"><div class="c {{c60}}"></div><div class="c {{c61}}"></div><div class="c {{c62}}"></div><div class="c {{c63}}"></div><div class="c {{c64}}"></div><div class="c {{c65}}"></div><div class="c {{c66}}"></div><div class="c {{c67}}"></div><div class="c {{c68}}"></div><div class="c {{c69}}"></div><div class="c {{c70}}"></div><div class="c {{c71}}"></div></div>
+        <div class="row"><div class="c {{c72}}"></div><div class="c {{c73}}"></div><div class="c {{c74}}"></div><div class="c {{c75}}"></div><div class="c {{c76}}"></div><div class="c {{c77}}"></div><div class="c {{c78}}"></div><div class="c {{c79}}"></div><div class="c {{c80}}"></div><div class="c {{c81}}"></div><div class="c {{c82}}"></div><div class="c {{c83}}"></div></div>
+        <div class="row"><div class="c {{c84}}"></div><div class="c {{c85}}"></div><div class="c {{c86}}"></div><div class="c {{c87}}"></div><div class="c {{c88}}"></div><div class="c {{c89}}"></div><div class="c {{c90}}"></div><div class="c {{c91}}"></div><div class="c {{c92}}"></div><div class="c {{c93}}"></div><div class="c {{c94}}"></div><div class="c {{c95}}"></div></div>
+        <div class="row"><div class="c {{c96}}"></div><div class="c {{c97}}"></div><div class="c {{c98}}"></div><div class="c {{c99}}"></div><div class="c {{c100}}"></div><div class="c {{c101}}"></div><div class="c {{c102}}"></div><div class="c {{c103}}"></div><div class="c {{c104}}"></div><div class="c {{c105}}"></div><div class="c {{c106}}"></div><div class="c {{c107}}"></div></div>
+        <div class="row"><div class="c {{c108}}"></div><div class="c {{c109}}"></div><div class="c {{c110}}"></div><div class="c {{c111}}"></div><div class="c {{c112}}"></div><div class="c {{c113}}"></div><div class="c {{c114}}"></div><div class="c {{c115}}"></div><div class="c {{c116}}"></div><div class="c {{c117}}"></div><div class="c {{c118}}"></div><div class="c {{c119}}"></div></div>
+        <div class="row"><div class="c {{c120}}"></div><div class="c {{c121}}"></div><div class="c {{c122}}"></div><div class="c {{c123}}"></div><div class="c {{c124}}"></div><div class="c {{c125}}"></div><div class="c {{c126}}"></div><div class="c {{c127}}"></div><div class="c {{c128}}"></div><div class="c {{c129}}"></div><div class="c {{c130}}"></div><div class="c {{c131}}"></div></div>
+        <div class="row"><div class="c {{c132}}"></div><div class="c {{c133}}"></div><div class="c {{c134}}"></div><div class="c {{c135}}"></div><div class="c {{c136}}"></div><div class="c {{c137}}"></div><div class="c {{c138}}"></div><div class="c {{c139}}"></div><div class="c {{c140}}"></div><div class="c {{c141}}"></div><div class="c {{c142}}"></div><div class="c {{c143}}"></div></div>
+        <div class="row"><div class="c {{c144}}"></div><div class="c {{c145}}"></div><div class="c {{c146}}"></div><div class="c {{c147}}"></div><div class="c {{c148}}"></div><div class="c {{c149}}"></div><div class="c {{c150}}"></div><div class="c {{c151}}"></div><div class="c {{c152}}"></div><div class="c {{c153}}"></div><div class="c {{c154}}"></div><div class="c {{c155}}"></div></div>
+        <div class="row"><div class="c {{c156}}"></div><div class="c {{c157}}"></div><div class="c {{c158}}"></div><div class="c {{c159}}"></div><div class="c {{c160}}"></div><div class="c {{c161}}"></div><div class="c {{c162}}"></div><div class="c {{c163}}"></div><div class="c {{c164}}"></div><div class="c {{c165}}"></div><div class="c {{c166}}"></div><div class="c {{c167}}"></div></div>
+        <div class="row"><div class="c {{c168}}"></div><div class="c {{c169}}"></div><div class="c {{c170}}"></div><div class="c {{c171}}"></div><div class="c {{c172}}"></div><div class="c {{c173}}"></div><div class="c {{c174}}"></div><div class="c {{c175}}"></div><div class="c {{c176}}"></div><div class="c {{c177}}"></div><div class="c {{c178}}"></div><div class="c {{c179}}"></div></div>
+        <div class="row"><div class="c {{c180}}"></div><div class="c {{c181}}"></div><div class="c {{c182}}"></div><div class="c {{c183}}"></div><div class="c {{c184}}"></div><div class="c {{c185}}"></div><div class="c {{c186}}"></div><div class="c {{c187}}"></div><div class="c {{c188}}"></div><div class="c {{c189}}"></div><div class="c {{c190}}"></div><div class="c {{c191}}"></div></div>
       </div>
     </div>
 
@@ -39,6 +39,9 @@
 </template>
 
 <script>
+// AVISO: la plantilla de arriba (16 filas x 12 celdas) esta generada. Cada
+// celda es un binding independiente de primer nivel (c0..c191), que es lo
+// unico que este runtime repinta de forma barata: por paso solo cambian 3.
 import brightness from '@system.brightness'
 import vibrator from '@system.vibrator'
 import storage from '@system.storage'
@@ -47,19 +50,19 @@ import router from '@system.router'
 
 const COLS = 12
 const ROWS = 16
-const SPEED_START = 240
-const SPEED_MIN = 110
-const SPEED_STEP = 7
+const SPEED_START = 220
+const SPEED_MIN = 100
+const SPEED_STEP = 6
 const ARROWS = { up: '^', down: 'v', left: '<', right: '>' }
 const VARIANT = '__VARIANT__'
 
-let board = []          // estado persistente del tablero: 'e' | 'h' | 'b' | 'f'
-let dirty = []          // filas a repintar en este paso
+let mirror = []         // copia no reactiva del tablero, para no leer props
 let snake = []
 let dir = 'right'
 let pending = null
 let food = { x: 6, y: 8 }
 let timer = null
+let gen = 0             // generacion del bucle: mata cadenas huerfanas
 let speed = SPEED_START
 let running = false
 let touchX = 0
@@ -99,22 +102,22 @@ export default {
     arrow: '>',
     over: false,
     inputInfo: '',
-    r0: [],
-    r1: [],
-    r2: [],
-    r3: [],
-    r4: [],
-    r5: [],
-    r6: [],
-    r7: [],
-    r8: [],
-    r9: [],
-    r10: [],
-    r11: [],
-    r12: [],
-    r13: [],
-    r14: [],
-    r15: []
+    c0: 'e', c1: 'e', c2: 'e', c3: 'e', c4: 'e', c5: 'e', c6: 'e', c7: 'e', c8: 'e', c9: 'e', c10: 'e', c11: 'e',
+    c12: 'e', c13: 'e', c14: 'e', c15: 'e', c16: 'e', c17: 'e', c18: 'e', c19: 'e', c20: 'e', c21: 'e', c22: 'e', c23: 'e',
+    c24: 'e', c25: 'e', c26: 'e', c27: 'e', c28: 'e', c29: 'e', c30: 'e', c31: 'e', c32: 'e', c33: 'e', c34: 'e', c35: 'e',
+    c36: 'e', c37: 'e', c38: 'e', c39: 'e', c40: 'e', c41: 'e', c42: 'e', c43: 'e', c44: 'e', c45: 'e', c46: 'e', c47: 'e',
+    c48: 'e', c49: 'e', c50: 'e', c51: 'e', c52: 'e', c53: 'e', c54: 'e', c55: 'e', c56: 'e', c57: 'e', c58: 'e', c59: 'e',
+    c60: 'e', c61: 'e', c62: 'e', c63: 'e', c64: 'e', c65: 'e', c66: 'e', c67: 'e', c68: 'e', c69: 'e', c70: 'e', c71: 'e',
+    c72: 'e', c73: 'e', c74: 'e', c75: 'e', c76: 'e', c77: 'e', c78: 'e', c79: 'e', c80: 'e', c81: 'e', c82: 'e', c83: 'e',
+    c84: 'e', c85: 'e', c86: 'e', c87: 'e', c88: 'e', c89: 'e', c90: 'e', c91: 'e', c92: 'e', c93: 'e', c94: 'e', c95: 'e',
+    c96: 'e', c97: 'e', c98: 'e', c99: 'e', c100: 'e', c101: 'e', c102: 'e', c103: 'e', c104: 'e', c105: 'e', c106: 'e', c107: 'e',
+    c108: 'e', c109: 'e', c110: 'e', c111: 'e', c112: 'e', c113: 'e', c114: 'e', c115: 'e', c116: 'e', c117: 'e', c118: 'e', c119: 'e',
+    c120: 'e', c121: 'e', c122: 'e', c123: 'e', c124: 'e', c125: 'e', c126: 'e', c127: 'e', c128: 'e', c129: 'e', c130: 'e', c131: 'e',
+    c132: 'e', c133: 'e', c134: 'e', c135: 'e', c136: 'e', c137: 'e', c138: 'e', c139: 'e', c140: 'e', c141: 'e', c142: 'e', c143: 'e',
+    c144: 'e', c145: 'e', c146: 'e', c147: 'e', c148: 'e', c149: 'e', c150: 'e', c151: 'e', c152: 'e', c153: 'e', c154: 'e', c155: 'e',
+    c156: 'e', c157: 'e', c158: 'e', c159: 'e', c160: 'e', c161: 'e', c162: 'e', c163: 'e', c164: 'e', c165: 'e', c166: 'e', c167: 'e',
+    c168: 'e', c169: 'e', c170: 'e', c171: 'e', c172: 'e', c173: 'e', c174: 'e', c175: 'e', c176: 'e', c177: 'e', c178: 'e', c179: 'e',
+    c180: 'e', c181: 'e', c182: 'e', c183: 'e', c184: 'e', c185: 'e', c186: 'e', c187: 'e', c188: 'e', c189: 'e', c190: 'e', c191: 'e'
   },
 
   onInit() {
@@ -138,50 +141,31 @@ export default {
     this.stopLoop()
   },
 
-  // --- pintado: solo las filas que cambian ---
-
-  markDirty(y) {
-    if (y >= 0 && y < ROWS) dirty[y] = true
-  },
+  // --- pintado: una celda = un binding ---
 
   setCell(x, y, v) {
     if (y < 0 || y >= ROWS || x < 0 || x >= COLS) return
-    if (board[y][x] === v) return
-    board[y][x] = v
-    dirty[y] = true
-  },
-
-  // Reasignar la fila entera es lo unico que este runtime repinta:
-  // mutar objetos anidados en un array no dispara render.
-  flush() {
-    for (let y = 0; y < ROWS; y++) {
-      if (!dirty[y]) continue
-      this['r' + y] = board[y].slice()
-      dirty[y] = false
-    }
-  },
-
-  redrawAll() {
-    for (let y = 0; y < ROWS; y++) dirty[y] = true
-    this.flush()
+    const i = y * COLS + x
+    if (mirror[i] === v) return
+    mirror[i] = v
+    this['c' + i] = v
   },
 
   // --- ciclo de juego ---
 
   reset() {
-    board = []
-    dirty = []
-    for (let y = 0; y < ROWS; y++) {
-      const row = []
-      for (let x = 0; x < COLS; x++) row.push('e')
-      board.push(row)
-      dirty.push(false)
+    for (let i = 0; i < COLS * ROWS; i++) {
+      if (mirror[i] !== 'e') {
+        mirror[i] = 'e'
+        this['c' + i] = 'e'
+      }
+      if (mirror[i] === undefined) mirror[i] = 'e'
     }
 
     const midY = Math.floor(ROWS / 2)
     snake = [{ x: 3, y: midY }, { x: 2, y: midY }, { x: 1, y: midY }]
     for (let i = 0; i < snake.length; i++) {
-      board[snake[i].y][snake[i].x] = i === 0 ? 'h' : 'b'
+      this.setCell(snake[i].x, snake[i].y, i === 0 ? 'h' : 'b')
     }
 
     dir = 'right'
@@ -193,26 +177,29 @@ export default {
     this.arrow = ARROWS[dir]
     this.over = false
     this.placeFood()
-    this.redrawAll()
     this.startLoop()
   },
 
-  // Cadena de setTimeout en vez de setInterval: si un paso tarda de mas, no se
-  // acumulan callbacks pendientes que ahoguen los gestos.
+  // Cadena de setTimeout con testigo de generacion: si alguna vez se solapan
+  // dos bucles (reinicio, onShow repetido), el viejo muere en el acto.
   startLoop() {
     const self = this
     this.stopLoop()
     running = true
+    gen = gen + 1
+    const myGen = gen
     const step = function () {
-      if (!running) return
+      if (!running || myGen !== gen) return
       self.tick()
-      if (running) timer = setTimeout(step, speed)
+      if (running && myGen === gen) timer = setTimeout(step, speed)
     }
+    lastTickAt = Date.now()
     timer = setTimeout(step, speed)
   },
 
   stopLoop() {
     running = false
+    gen = gen + 1
     if (timer) {
       clearTimeout(timer)
       timer = null
@@ -257,23 +244,21 @@ export default {
       const tail = snake.pop()
       this.setCell(tail.x, tail.y, 'e')
     }
-
-    this.flush()
   },
 
   gameOver() {
     this.stopLoop()
     this.over = true
-    this.inputInfo = VARIANT + ' - ' + lastInput + ' - paso ' + tickMs + 'ms'
+    this.inputInfo = VARIANT + ' - ' + lastInput + ' - paso ' + tickMs + '/' + speed + 'ms'
     buzz(200)
     this.saveBest()
   },
 
   placeFood() {
-    for (let guard = 0; guard < 300; guard++) {
+    for (let guard = 0; guard < 400; guard++) {
       const x = Math.floor(Math.random() * COLS)
       const y = Math.floor(Math.random() * ROWS)
-      if (board[y][x] === 'e') {
+      if (mirror[y * COLS + x] === 'e') {
         food = { x: x, y: y }
         this.setCell(x, y, 'f')
         return
@@ -286,9 +271,22 @@ export default {
   setDir(d, src) {
     lastInput = src + ':' + d
     if (this.over) return
-    if (opposite(d, dir)) return
+    if (opposite(d, dir) || d === dir) return
     pending = d
-    this.arrow = ARROWS[d]   // respuesta visual inmediata, sin esperar al paso
+    this.arrow = ARROWS[d]
+
+    // Si ya ha pasado medio paso, giramos YA y reprogramamos: asi el giro se
+    // siente inmediato en vez de esperar hasta 220 ms.
+    if (running && Date.now() - lastTickAt >= speed * 0.5) this.stepNow()
+  },
+
+  stepNow() {
+    if (timer) {
+      clearTimeout(timer)
+      timer = null
+    }
+    this.tick()
+    if (running) this.startLoop()
   },
 
   onSwipe(e) {

@@ -5,8 +5,8 @@ derecha), como el de Google en el móvil.
 
 ## Archivos listos para instalar
 
-- `dist/com.claude.snake.release.1.2.0.rpk` — se instala como **«REL Snake»**.
-- `dist/com.claude.snake.debug.1.2.0.rpk` — se instala como **«DBG Snake»**.
+- `dist/com.claude.snake.release.1.3.0.rpk` — se instala como **«REL Snake»**.
+- `dist/com.claude.snake.debug.1.3.0.rpk` — se instala como **«DBG Snake»**.
 
 En la pantalla de game over aparece abajo, en gris pequeño, la variante y la
 última entrada recibida (`RELEASE · swipe:up`, `DEBUG · touch:left`, o
@@ -17,8 +17,10 @@ En la pantalla de game over aparece abajo, en gris pequeño, la variante y la
 - Desliza en las cuatro direcciones para girar. No se permite el giro de 180º.
 - La flecha de la cabecera muestra la dirección actual: sirve de confirmación
   visual de que el gesto ha llegado.
-- Comer acelera el juego: 240 ms por paso al empezar, −7 ms por pieza, con
-  suelo de 110 ms.
+- Comer acelera el juego: 220 ms por paso al empezar, −6 ms por pieza, con
+  suelo de 100 ms.
+- El giro se aplica al instante si ya ha pasado medio paso, en vez de esperar
+  al siguiente: quita casi toda la latencia percibida.
 - Chocar con la pared o con el propio cuerpo termina la partida. En game over
   hay dos botones, JUGAR y SALIR.
 - **Salir en cualquier momento: mantén pulsada la pantalla** (`onlongpress` →
@@ -33,7 +35,26 @@ En la pantalla de game over aparece abajo, en gris pequeño, la variante y la
 - Tablero de 12 × 16 celdas de 28 px (336 × 448), cabecera de 32 px: encaja
   exactamente en los 336 × 480 de la pantalla, con `designWidth: 336`.
 
-### Solo se repintan las filas que cambian
+### Una celda, un binding
+
+La 1.2.0 ya solo tocaba 2-3 filas por paso, pero reasignar el array de una
+fila hace que el framework rehaga sus 12 nodos. Seguía habiendo demasiado
+trabajo: el juego iba a tirones, con parones y acelerones, y los gestos
+llegaban tarde.
+
+En la 1.3.0 la plantilla es estática y **cada celda es su propio binding de
+primer nivel** (`c0`…`c191`, plantilla generada). Un paso solo escribe tres de
+esas propiedades — cabeza nueva, cabeza vieja que pasa a cuerpo y cola que se
+libera —, así que el framework actualiza exactamente 3 nodos. Verificado en
+simulación fuera del dispositivo (`tools/simplay.js`): máximo 3 celdas
+cambiadas por paso, y el tablero mantiene 1 cabeza y 1 comida durante toda la
+partida.
+
+El bucle lleva además un testigo de generación: si dos bucles llegaran a
+solaparse (reinicio, `onShow` repetido — en esta banda llega a dispararse
+varias veces), el viejo muere en el acto en vez de duplicar la velocidad.
+
+### Historial: solo se repintan las filas que cambian
 
 La 1.1.0 ya se veía, pero reasignaba las 16 filas en cada paso: 192 nodos
 repintados 4 veces por segundo saturaban la CPU de la banda. El resultado era
@@ -74,6 +95,12 @@ El dibujo actual no depende de eso:
   respaldo, `touchstart` + `touchend` deduciendo la dirección del
   desplazamiento con umbral de 18 px. Si una de las dos vías no existe en el
   firmware, la otra cubre el control.
+
+## Probar la lógica sin el reloj
+
+`node tools/simplay.js src/pages/index/index.ux` extrae el `<script>` del
+`.ux`, sustituye los módulos `@system.*` por stubs y juega una partida
+automática, comprobando coherencia del tablero y celdas tocadas por paso.
 
 ## Compilar
 
