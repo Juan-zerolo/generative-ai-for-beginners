@@ -1,0 +1,393 @@
+<template>
+  <div class="page" onlongpress="onQuit">
+    <text class="title">MICRO {{variant}}</text>
+    <text class="state">{{state}}</text>
+
+    <text class="l1">{{lineMods}}</text>
+    <text class="l2">{{lineStart}}</text>
+    <text class="l2">{{lineStop}}</text>
+    <text class="l2">{{lineFile}}</text>
+    <text class="l2">{{lineLevel}}</text>
+
+    <div class="buttons">
+      <text class="btn rec" onclick="onRecord">{{btnText}}</text>
+      <text class="btn quit" onclick="onQuit">SALIR</text>
+    </div>
+  </div>
+</template>
+
+<script>
+import record from '@system.record'
+import file from '@system.file'
+import audio from '@system.audio'
+import media from '@system.media'
+import vibrator from '@system.vibrator'
+import brightness from '@system.brightness'
+import app from '@system.app'
+import router from '@system.router'
+
+const VARIANT = '__VARIANT__'
+const REC_MS = 3000
+
+// Nombres que se intentan resolver: el runtime solo inyecta los declarados en
+// el manifest, asi que esta lista y la del manifest van juntas.
+const PROBE = [
+  'system.record', 'system.audio', 'system.media', 'system.file',
+  'system.microphone', 'system.recorder', 'system.voice', 'system.speech',
+  'system.asr', 'system.aivs', 'system.speechrecognition', 'system.ai'
+]
+
+let recMod = null
+let recStartName = ''
+let recStopName = ''
+let lastUri = ''
+let busy = false
+let stopTimer = null
+let watchdog = null
+
+function requireModule(name) {
+  try {
+    /* eslint-disable no-undef */
+    if (typeof $app_require$ === 'function') {
+      const m = $app_require$('@app-module/' + name)
+      return m && m.default ? m.default : m
+    }
+    /* eslint-enable no-undef */
+  } catch (e) {
+    console.log('require ' + name + ': ' + e)
+  }
+  return undefined
+}
+
+function keysOf(obj) {
+  const out = []
+  if (obj === undefined || obj === null) return out
+  const push = function (k) {
+    if (k !== 'constructor' && out.indexOf(k) < 0) out.push(k)
+  }
+  try {
+    for (const k in obj) push(k)
+  } catch (e) { /* vacio */ }
+  try {
+    Object.getOwnPropertyNames(obj).forEach(push)
+  } catch (e) { /* vacio */ }
+  try {
+    const p = Object.getPrototypeOf(obj)
+    if (p && p !== Object.prototype) Object.getOwnPropertyNames(p).forEach(push)
+  } catch (e) { /* vacio */ }
+  return out
+}
+
+function buzz(ms) {
+  try {
+    if (vibrator && typeof vibrator.vibrate === 'function') vibrator.vibrate({ mode: ms })
+  } catch (e) { /* vacio */ }
+}
+
+export default {
+  private: {
+    variant: '',
+    state: 'sondeando...',
+    lineMods: '',
+    lineStart: '',
+    lineStop: '',
+    lineFile: '',
+    lineLevel: '',
+    btnText: 'GRABAR'
+  },
+
+  onShow() {
+    this.variant = VARIANT
+    try {
+      brightness.setKeepScreenOn({ keepScreenOn: true })
+    } catch (e) { /* vacio */ }
+    this.probe()
+  },
+
+  onDestroy() {
+    this.clearTimers()
+  },
+
+  clearTimers() {
+    if (stopTimer) { clearTimeout(stopTimer); stopTimer = null }
+    if (watchdog) { clearTimeout(watchdog); watchdog = null }
+  },
+
+  // --- paso 1: que modulos de audio existen ---
+
+  probe() {
+    const found = []
+    const statics = { 'system.record': record, 'system.audio': audio, 'system.media': media, 'system.file': file }
+
+    for (let i = 0; i < PROBE.length; i++) {
+      const name = PROBE[i]
+      let mod = requireModule(name)
+      if (mod === undefined && statics[name]) mod = statics[name]
+      if (mod === undefined || mod === null) continue
+      found.push(name.replace('system.', ''))
+
+      if (!recMod) {
+        const ks = keysOf(mod)
+        for (let j = 0; j < ks.length; j++) {
+          if (/^start(Record|Recording)?$/i.test(ks[j]) && typeof mod[ks[j]] === 'function') {
+            recMod = mod
+            recStartName = ks[j]
+            for (let k = 0; k < ks.length; k++) {
+              if (/^stop(Record|Recording)?$/i.test(ks[k])) recStopName = ks[k]
+            }
+          }
+        }
+      }
+    }
+
+    this.lineMods = 'mod: ' + (found.join(',') || 'ninguno')
+
+    if (!recMod) {
+      this.state = 'sin API de grabacion'
+      this.btnText = 'REINTENTAR'
+      return
+    }
+    this.state = 'listo para grabar'
+    this.lineStart = 'api: ' + recStartName + '/' + (recStopName || '?') +
+      ' [' + keysOf(recMod).join(',').slice(0, 60) + ']'
+  },
+
+  // --- paso 2: grabar de verdad ---
+
+  onRecord() {
+    if (busy) return
+    if (!recMod) return this.probe()
+
+    busy = true
+    lastUri = ''
+    this.btnText = 'GRABANDO'
+    this.state = 'grabando ' + (REC_MS / 1000) + 's...'
+    this.lineStop = ''
+    this.lineFile = ''
+    this.lineLevel = ''
+    buzz(60)
+
+    const self = this
+    const opts = {
+      duration: REC_MS,
+      sampleRate: 8000,
+      numberOfChannels: 1,
+      encodeBitRate: 16000,
+      format: 'pcm',
+      success(data) {
+        self.onRecorded(data, 'success')
+      },
+      fail(data, code) {
+        self.lineStart = 'start fail: ' + code + ' ' + (data || '')
+        self.finish('fallo al grabar')
+      }
+    }
+
+    try {
+      recMod[recStartName](opts)
+      this.lineStart = 'start llamado (pcm)'
+    } catch (e) {
+      this.lineStart = 'start excepcion: ' + ('' + e).slice(0, 40)
+      return this.finish('excepcion en start')
+    }
+
+    // Parada explicita por si 'duration' no se respeta.
+    stopTimer = setTimeout(function () {
+      self.stopRecording()
+    }, REC_MS + 200)
+
+    // Si no llega nada, no dejamos la app colgada.
+    watchdog = setTimeout(function () {
+      if (busy) self.finish('sin respuesta del micro')
+    }, REC_MS + 6000)
+  },
+
+  stopRecording() {
+    const self = this
+    if (!recStopName || typeof recMod[recStopName] !== 'function') {
+      this.lineStop = 'stop: no existe'
+      return
+    }
+    try {
+      recMod[recStopName]({
+        success(data) {
+          self.lineStop = 'stop ok'
+          self.onRecorded(data, 'stop')
+        },
+        fail(data, code) {
+          self.lineStop = 'stop fail: ' + code
+        }
+      })
+    } catch (e) {
+      this.lineStop = 'stop excepcion: ' + ('' + e).slice(0, 30)
+    }
+  },
+
+  onRecorded(data, from) {
+    const uri = data && (data.uri || data.filePath || data.path || data.tempFilePath)
+    if (!uri || lastUri === uri) return
+    lastUri = uri
+    this.lineFile = from + ' uri: ' + ('' + uri).slice(-28)
+    this.inspectFile(uri)
+    this.finish('grabado')
+  },
+
+  // --- paso 3: comprobar que el fichero tiene audio de verdad ---
+
+  inspectFile(uri) {
+    const self = this
+    try {
+      if (file && typeof file.get === 'function') {
+        file.get({
+          uri: uri,
+          success(info) {
+            const len = info && (info.length !== undefined ? info.length : info.size)
+            self.lineFile = 'fichero: ' + len + ' bytes'
+            self.readLevel(uri, len)
+          },
+          fail(d, code) {
+            self.lineFile = 'file.get fail: ' + code
+          }
+        })
+      } else {
+        this.lineFile = this.lineFile + ' (sin system.file)'
+      }
+    } catch (e) {
+      this.lineFile = 'file excepcion: ' + ('' + e).slice(0, 30)
+    }
+  },
+
+  // Nivel de sonido medio: prueba de que lo grabado es audio real y no ceros.
+  readLevel(uri, len) {
+    const self = this
+    if (!file || typeof file.readArrayBuffer !== 'function') {
+      this.lineLevel = 'sin readArrayBuffer'
+      return
+    }
+    const take = len && len > 16000 ? 16000 : len
+    try {
+      file.readArrayBuffer({
+        uri: uri,
+        position: 0,
+        length: take,
+        success(res) {
+          try {
+            const buf = res && (res.buffer || res.data || res)
+            let samples
+            if (buf instanceof ArrayBuffer) samples = new Int16Array(buf)
+            else if (buf && buf.length !== undefined) samples = buf
+            if (!samples || !samples.length) {
+              self.lineLevel = 'buffer vacio'
+              return
+            }
+            let sum = 0
+            let peak = 0
+            const n = samples.length > 4000 ? 4000 : samples.length
+            for (let i = 0; i < n; i++) {
+              const v = samples[i] > 32767 ? samples[i] - 65536 : samples[i]
+              const a = v < 0 ? -v : v
+              sum += a
+              if (a > peak) peak = a
+            }
+            self.lineLevel = 'nivel medio ' + Math.round(sum / n) + ' pico ' + peak
+          } catch (e) {
+            self.lineLevel = 'nivel error: ' + ('' + e).slice(0, 30)
+          }
+        },
+        fail(d, code) {
+          self.lineLevel = 'readArrayBuffer fail: ' + code
+        }
+      })
+    } catch (e) {
+      this.lineLevel = 'read excepcion: ' + ('' + e).slice(0, 30)
+    }
+  },
+
+  finish(msg) {
+    this.clearTimers()
+    busy = false
+    this.state = msg
+    this.btnText = 'GRABAR'
+    buzz(120)
+  },
+
+  onQuit() {
+    this.clearTimers()
+    try {
+      if (app && typeof app.terminate === 'function') return app.terminate()
+    } catch (e) { /* vacio */ }
+    try {
+      if (router && typeof router.back === 'function') router.back()
+    } catch (e) { /* vacio */ }
+  }
+}
+</script>
+
+<style>
+.page {
+  flex-direction: column;
+  width: 336px;
+  height: 480px;
+  background-color: #000000;
+  align-items: center;
+  padding-top: 10px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.title {
+  font-size: 15px;
+  color: #ff7043;
+  text-align: center;
+}
+
+.state {
+  font-size: 22px;
+  font-weight: bold;
+  color: #ffffff;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.l1 {
+  font-size: 12px;
+  color: #8ab4f8;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.l2 {
+  font-size: 12px;
+  color: #bdbdbd;
+  text-align: center;
+  margin-top: 6px;
+}
+
+.buttons {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.btn {
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  height: 48px;
+  width: 140px;
+  padding-top: 11px;
+  border-radius: 12px;
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+.rec {
+  color: #000000;
+  background-color: #69f0ae;
+}
+
+.quit {
+  color: #ffffff;
+  background-color: #444444;
+}
+</style>
