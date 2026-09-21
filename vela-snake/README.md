@@ -5,8 +5,8 @@ derecha), como el de Google en el móvil.
 
 ## Archivos listos para instalar
 
-- `dist/com.claude.snake.release.1.1.0.rpk` — se instala como **«REL Snake»**.
-- `dist/com.claude.snake.debug.1.1.0.rpk` — se instala como **«DBG Snake»**.
+- `dist/com.claude.snake.release.1.2.0.rpk` — se instala como **«REL Snake»**.
+- `dist/com.claude.snake.debug.1.2.0.rpk` — se instala como **«DBG Snake»**.
 
 En la pantalla de game over aparece abajo, en gris pequeño, la variante y la
 última entrada recibida (`RELEASE · swipe:up`, `DEBUG · touch:left`, o
@@ -17,7 +17,7 @@ En la pantalla de game over aparece abajo, en gris pequeño, la variante y la
 - Desliza en las cuatro direcciones para girar. No se permite el giro de 180º.
 - La flecha de la cabecera muestra la dirección actual: sirve de confirmación
   visual de que el gesto ha llegado.
-- Comer acelera el juego: 260 ms por paso al empezar, −7 ms por pieza, con
+- Comer acelera el juego: 240 ms por paso al empezar, −7 ms por pieza, con
   suelo de 110 ms.
 - Chocar con la pared o con el propio cuerpo termina la partida. En game over
   hay dos botones, JUGAR y SALIR.
@@ -33,6 +33,24 @@ En la pantalla de game over aparece abajo, en gris pequeño, la variante y la
 - Tablero de 12 × 16 celdas de 28 px (336 × 448), cabecera de 32 px: encaja
   exactamente en los 336 × 480 de la pantalla, con `designWidth: 336`.
 
+### Solo se repintan las filas que cambian
+
+La 1.1.0 ya se veía, pero reasignaba las 16 filas en cada paso: 192 nodos
+repintados 4 veces por segundo saturaban la CPU de la banda. El resultado era
+un juego lentísimo y, peor, los gestos se quedaban sin atender (ni la flecha
+respondía).
+
+En la 1.2.0 el tablero es un estado persistente (`board`) y cada paso solo
+toca tres celdas — cabeza nueva, cabeza vieja que pasa a cuerpo, y cola que se
+libera (o comida nueva) —, marcando como sucias las 2-3 filas afectadas. Solo
+esas se reasignan. Además:
+
+- El bucle es una cadena de `setTimeout` en vez de `setInterval`, para que un
+  paso lento no acumule callbacks pendientes que ahoguen la entrada.
+- La flecha se actualiza en el propio gesto, sin esperar al siguiente paso.
+- En game over se muestra el tiempo real medio por paso (`paso 245ms`), para
+  comparar con la velocidad nominal.
+
 ### El runtime no propaga mutaciones anidadas
 
 La versión 1.0.0 dibujaba con un *pool* de celdas posicionadas por
@@ -46,7 +64,7 @@ de objetos anidados dentro de un array.
 El dibujo actual no depende de eso:
 
 - Cada fila es una propiedad de primer nivel (`r0`…`r15`) que se **reasigna
-  entera** en cada paso, con un array nuevo de 12 cadenas (`e`, `h`, `b`, `f`).
+  entera**, con un array nuevo de 12 cadenas (`e`, `h`, `b`, `f`).
 - Las celdas se pintan solo con clases (`class="c {{$item}}"`, que compila a
   `"c " + $item`): sin estilos inline, sin posicionamiento absoluto, sin `for`
   anidados. Solo layout flex, que es lo más básico del framework.

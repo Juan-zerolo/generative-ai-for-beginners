@@ -47,12 +47,14 @@ import router from '@system.router'
 
 const COLS = 12
 const ROWS = 16
-const SPEED_START = 260
+const SPEED_START = 240
 const SPEED_MIN = 110
 const SPEED_STEP = 7
 const ARROWS = { up: '^', down: 'v', left: '<', right: '>' }
 const VARIANT = '__VARIANT__'
 
+let board = []          // estado persistente del tablero: 'e' | 'h' | 'b' | 'f'
+let dirty = []          // filas a repintar en este paso
 let snake = []
 let dir = 'right'
 let pending = null
@@ -63,6 +65,8 @@ let running = false
 let touchX = 0
 let touchY = 0
 let lastInput = 'sin entrada'
+let lastTickAt = 0
+let tickMs = 0
 
 function opposite(a, b) {
   return (a === 'up' && b === 'down') || (a === 'down' && b === 'up') ||
@@ -95,21 +99,21 @@ export default {
     arrow: '>',
     over: false,
     inputInfo: '',
-    r0: [], 
-    r1: [], 
-    r2: [], 
-    r3: [], 
-    r4: [], 
-    r5: [], 
-    r6: [], 
-    r7: [], 
-    r8: [], 
-    r9: [], 
-    r10: [], 
-    r11: [], 
-    r12: [], 
-    r13: [], 
-    r14: [], 
+    r0: [],
+    r1: [],
+    r2: [],
+    r3: [],
+    r4: [],
+    r5: [],
+    r6: [],
+    r7: [],
+    r8: [],
+    r9: [],
+    r10: [],
+    r11: [],
+    r12: [],
+    r13: [],
+    r14: [],
     r15: []
   },
 
@@ -134,51 +138,95 @@ export default {
     this.stopLoop()
   },
 
+  // --- pintado: solo las filas que cambian ---
+
+  markDirty(y) {
+    if (y >= 0 && y < ROWS) dirty[y] = true
+  },
+
+  setCell(x, y, v) {
+    if (y < 0 || y >= ROWS || x < 0 || x >= COLS) return
+    if (board[y][x] === v) return
+    board[y][x] = v
+    dirty[y] = true
+  },
+
+  // Reasignar la fila entera es lo unico que este runtime repinta:
+  // mutar objetos anidados en un array no dispara render.
+  flush() {
+    for (let y = 0; y < ROWS; y++) {
+      if (!dirty[y]) continue
+      this['r' + y] = board[y].slice()
+      dirty[y] = false
+    }
+  },
+
+  redrawAll() {
+    for (let y = 0; y < ROWS; y++) dirty[y] = true
+    this.flush()
+  },
+
   // --- ciclo de juego ---
 
   reset() {
+    board = []
+    dirty = []
+    for (let y = 0; y < ROWS; y++) {
+      const row = []
+      for (let x = 0; x < COLS; x++) row.push('e')
+      board.push(row)
+      dirty.push(false)
+    }
+
     const midY = Math.floor(ROWS / 2)
     snake = [{ x: 3, y: midY }, { x: 2, y: midY }, { x: 1, y: midY }]
+    for (let i = 0; i < snake.length; i++) {
+      board[snake[i].y][snake[i].x] = i === 0 ? 'h' : 'b'
+    }
+
     dir = 'right'
     pending = null
     speed = SPEED_START
+    tickMs = 0
+    lastTickAt = 0
     this.score = 0
     this.arrow = ARROWS[dir]
     this.over = false
     this.placeFood()
-    this.draw()
+    this.redrawAll()
     this.startLoop()
   },
 
+  // Cadena de setTimeout en vez de setInterval: si un paso tarda de mas, no se
+  // acumulan callbacks pendientes que ahoguen los gestos.
   startLoop() {
     const self = this
     this.stopLoop()
     running = true
-    timer = setInterval(function () {
+    const step = function () {
+      if (!running) return
       self.tick()
-    }, speed)
+      if (running) timer = setTimeout(step, speed)
+    }
+    timer = setTimeout(step, speed)
   },
 
   stopLoop() {
     running = false
     if (timer) {
-      clearInterval(timer)
+      clearTimeout(timer)
       timer = null
     }
-  },
-
-  // Cambiar de velocidad exige recrear el intervalo.
-  retime() {
-    if (running) this.startLoop()
   },
 
   tick() {
     if (this.over) return
 
-    if (pending && !opposite(pending, dir)) {
-      dir = pending
-      this.arrow = ARROWS[dir]
-    }
+    const now = Date.now()
+    if (lastTickAt) tickMs = Math.round((tickMs * 3 + (now - lastTickAt)) / 4)
+    lastTickAt = now
+
+    if (pending && !opposite(pending, dir)) dir = pending
     pending = null
 
     const head = snake[0]
@@ -194,83 +242,43 @@ export default {
       if (snake[i].x === nx && snake[i].y === ny) return this.gameOver()
     }
 
-    snake.unshift({ x: nx, y: ny })
+    const ate = nx === food.x && ny === food.y
 
-    if (nx === food.x && ny === food.y) {
+    snake.unshift({ x: nx, y: ny })
+    this.setCell(head.x, head.y, 'b')
+    this.setCell(nx, ny, 'h')
+
+    if (ate) {
       this.score = this.score + 1
       buzz(30)
       this.placeFood()
-      if (speed > SPEED_MIN) {
-        speed = Math.max(SPEED_MIN, speed - SPEED_STEP)
-        this.retime()
-      }
+      if (speed > SPEED_MIN) speed = Math.max(SPEED_MIN, speed - SPEED_STEP)
     } else {
-      snake.pop()
+      const tail = snake.pop()
+      this.setCell(tail.x, tail.y, 'e')
     }
 
-    this.draw()
+    this.flush()
   },
 
   gameOver() {
     this.stopLoop()
     this.over = true
-    this.inputInfo = VARIANT + ' - ' + lastInput + ' - manten pulsado: salir'
+    this.inputInfo = VARIANT + ' - ' + lastInput + ' - paso ' + tickMs + 'ms'
     buzz(200)
     this.saveBest()
   },
 
   placeFood() {
-    for (let guard = 0; guard < 200; guard++) {
+    for (let guard = 0; guard < 300; guard++) {
       const x = Math.floor(Math.random() * COLS)
       const y = Math.floor(Math.random() * ROWS)
-      let hit = false
-      for (let i = 0; i < snake.length; i++) {
-        if (snake[i].x === x && snake[i].y === y) {
-          hit = true
-          break
-        }
-      }
-      if (!hit) {
+      if (board[y][x] === 'e') {
         food = { x: x, y: y }
+        this.setCell(x, y, 'f')
         return
       }
     }
-  },
-
-  // Cada fila es una propiedad de primer nivel que se REASIGNA entera: mutar
-  // objetos anidados del array no repinta en este runtime.
-  draw() {
-    const grid = []
-    for (let y = 0; y < ROWS; y++) {
-      const row = []
-      for (let x = 0; x < COLS; x++) row.push('e')
-      grid.push(row)
-    }
-
-    grid[food.y][food.x] = 'f'
-    for (let i = snake.length - 1; i >= 0; i--) {
-      const s = snake[i]
-      if (s.y >= 0 && s.y < ROWS && s.x >= 0 && s.x < COLS) {
-        grid[s.y][s.x] = i === 0 ? 'h' : 'b'
-      }
-    }
-
-    this.r0 = grid[0]
-    this.r1 = grid[1]
-    this.r2 = grid[2]
-    this.r3 = grid[3]
-    this.r4 = grid[4]
-    this.r5 = grid[5]
-    this.r6 = grid[6]
-    this.r7 = grid[7]
-    this.r8 = grid[8]
-    this.r9 = grid[9]
-    this.r10 = grid[10]
-    this.r11 = grid[11]
-    this.r12 = grid[12]
-    this.r13 = grid[13]
-    this.r14 = grid[14]
-    this.r15 = grid[15]
   },
 
   // --- entrada ---
@@ -278,7 +286,9 @@ export default {
   setDir(d, src) {
     lastInput = src + ':' + d
     if (this.over) return
-    if (!opposite(d, dir)) pending = d
+    if (opposite(d, dir)) return
+    pending = d
+    this.arrow = ARROWS[d]   // respuesta visual inmediata, sin esperar al paso
   },
 
   onSwipe(e) {
@@ -293,7 +303,6 @@ export default {
     touchY = p.y
   },
 
-  // Respaldo por si el evento swipe no llegase.
   onTouchEnd(e) {
     const p = pointOf(e)
     if (!p) return
@@ -312,7 +321,6 @@ export default {
     this.reset()
   },
 
-  // Salir: manten pulsado en cualquier momento, o boton SALIR al perder.
   onLongPress() {
     this.quit()
   },
