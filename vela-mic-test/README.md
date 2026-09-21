@@ -3,6 +3,26 @@
 App de prueba para averiguar si el micrófono de la banda es accesible desde
 una quick app, antes de construir nada encima.
 
+## Resultado en la Smart Band 8 Pro: NO accesible
+
+```
+sin API de grabacion
+mod: file
+```
+
+De los 12 nombres candidatos declarados en el manifest, en este firmware solo
+resuelve `system.file`. No existen `record`, `microphone`, `recorder`, `voice`,
+`speech`, `asr`, `aivs`, `speechrecognition` ni `ai`.
+
+El dato que lo explica: **tampoco resuelven `system.audio` ni `system.media`**,
+que sí están documentados para relojes Vela y que la demo oficial de Xiaomi
+declara. O sea que en esta banda no es que falte la grabación: está cerrado
+todo el subsistema de audio para quick apps. Coherente con que el dispositivo
+no tenga altavoz y con que el micrófono quede reservado a funciones del
+sistema.
+
+Conclusión: el micrófono no se puede usar desde un `.rpk` en la Band 8 Pro.
+
 ## Archivos
 
 - `dist/com.claude.mictest.release.1.0.0.rpk` — «REL Micro», rotula `RELEASE`.
