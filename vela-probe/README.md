@@ -4,6 +4,67 @@ Declara 62 módulos `@system.*` en el manifest y dice, en el propio
 dispositivo, cuáles existen de verdad, qué métodos tiene cada uno, y si las
 operaciones básicas funcionan.
 
+## Resultado en la Smart Band 8 Pro (Gadgetbridge)
+
+**11 de 62 módulos existen:**
+
+```
+app  router  device  configuration  prompt
+storage  file  cipher  interconnect  brightness  vibrator
+```
+
+**51 no existen**, entre ellos todos los de estas familias:
+
+| Familia | Ausentes |
+| --- | --- |
+| Red | `fetch`, `request`, `network`, `wifi`, `websocketfactory`, `bluetooth`, `ble` |
+| Sensores y salud | `sensor`, `geolocation`, `health`, `fitness`, `sport`, `stepcounter`, `heartrate`, `sleep`, `motion`, `compass` |
+| Multimedia | `audio`, `media`, `video`, `record`, `camera`, `image`, `barcode` |
+| Tiempo y avisos | `alarm`, `timer`, `notification`, `calendar` |
+| Teléfono | `share`, `contact`, `sms`, `telecom`, `webview` |
+| Hardware | `volume`, `battery`, `power`, `screen`, `display`, `keyguard`, `watchface`, `theme` |
+| Sistema | `shortcut`, `package`, `update`, `event`, `resident`, `debug`, `log`, `clipboard`, `ai`, `voice` |
+
+### Identidad del dispositivo (`device.getInfo`)
+
+```
+brand            Vela
+manufacturer     XiaoMi Vela Team
+product          Xiaomi Smart Band 8 Pro
+model            ap
+osType           NuttX
+osVersionName    10.3.0     (osVersionCode 656128)
+platformVersionName  1.0.0-alpha
+platformVersionCode  1
+language / region    zh / CN
+```
+
+`platformVersionCode: 1` explica la escasez: es la primera versión de la
+plataforma de quick apps. Y ojo, los `.rpk` de este repo declaran
+`minPlatformVersion: 1000` y se instalan igual, así que **ese campo no se está
+comprobando** en este firmware.
+
+### Pruebas en vivo
+
+- `file`: escribe y relee `internal://files/probe.txt` correctamente.
+- `device.getDeviceId`: devuelve el mismo identificador que el IMEI de
+  `getInfo`.
+- `storage`: funciona (el récord del Snake sobrevive entre sesiones).
+- `battery` y `network` no se prueban: los módulos no existen.
+
+### Qué implica
+
+Se pueden hacer **aplicaciones autónomas y en primer plano**: juegos, temporizadores
+mientras la app esté abierta, contadores, notas, herramientas, linterna
+(`brightness`), vibración.
+
+No se puede: nada conectado (sin red), nada de sensores ni datos de salud,
+nada de audio, y **nada en segundo plano ni avisos programados** (sin `alarm`,
+`timer` ni `notification`): la app solo corre mientras está en pantalla.
+
+`interconnect` está presente y es el canal con el teléfono; queda por ver si
+sirve de algo con Gadgetbridge en lugar de la app de Xiaomi.
+
 ## Por qué hace falta
 
 En esta banda (Smart Band 8 Pro con Gadgetbridge) aprendimos dos cosas a base
