@@ -44,12 +44,41 @@ plataforma de quick apps. Y ojo, los `.rpk` de este repo declaran
 `minPlatformVersion: 1000` y se instalan igual, así que **ese campo no se está
 comprobando** en este firmware.
 
+### Métodos de cada módulo presente
+
+| Módulo | Métodos |
+| --- | --- |
+| `app` (3) | `getInfo`, `terminate`, `loadLibrary` |
+| `router` (7) | `push`, `replace`, `back`, `clear`, `getLength`, `getState`, `getPages` |
+| `device` (5) | `getInfo`, `getDeviceId`, `getSerial`, `getTotalStorage`, `getAvailableStorage` |
+| `configuration` (1) | `getLocale` |
+| `prompt` (2) | `showToast`, `showDialog` |
+| `storage` (4) | `get`, `set`, `clear`, `delete` |
+| `file` (12) | `move`, `copy`, `list`, `get`, `delete`, `writeText`, `writeArrayBuffer`, `readText`, `readArrayBuffer`, `access`, `mkdir`, `rmdir` |
+| `cipher` (6) | `rsa`, `sign`, `verify`, `digest`, `md5`, `aes` |
+| `interconnect` (1) | `instance` |
+| `brightness` (5) | `getValue`, `setValue`, `getMode`, `setMode`, `setKeepScreenOn` |
+| `vibrator` (1) | `vibrate` |
+
+Eso es **47 métodos en total**: toda la superficie de programación disponible
+en este dispositivo.
+
+Notas:
+
+- `configuration.getLocale` salió como «sin respuesta» porque la sonda lo llamó
+  con callbacks: es **síncrono**, devuelve el valor directamente.
+- `interconnect` expone solo `instance`, una fábrica. Habría que llamarla e
+  inspeccionar el objeto devuelto para saber qué permite; es el único módulo
+  presente cuyo alcance sigue sin conocerse.
+- `file` es sorprendentemente completo (incluye binario y directorios), y
+  `cipher` trae RSA, AES, firma y hashes.
+
 ### Pruebas en vivo
 
 - `file`: escribe y relee `internal://files/probe.txt` correctamente.
 - `device.getDeviceId`: devuelve el mismo identificador que el IMEI de
   `getInfo`.
-- `storage`: funciona (el récord del Snake sobrevive entre sesiones).
+- `storage`: escribe y relee `v42` correctamente.
 - `battery` y `network` no se prueban: los módulos no existen.
 
 ### Qué implica
