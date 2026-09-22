@@ -1,0 +1,562 @@
+<template>
+  <stack class="page" onswipe="onSwipe" ontouchstart="onTouchStart" ontouchend="onTouchEnd" onlongpress="onQuit">
+    <div class="layer">
+      <div class="header">
+        <text class="score">{{score}}</text>
+        <text class="best">{{bestText}}</text>
+      </div>
+      <div class="board">
+        <div class="row"><div class="c {{b0}}"><text class="v {{f0}}">{{n0}}</text></div><div class="c {{b1}}"><text class="v {{f1}}">{{n1}}</text></div><div class="c {{b2}}"><text class="v {{f2}}">{{n2}}</text></div><div class="c {{b3}}"><text class="v {{f3}}">{{n3}}</text></div></div>
+        <div class="row"><div class="c {{b4}}"><text class="v {{f4}}">{{n4}}</text></div><div class="c {{b5}}"><text class="v {{f5}}">{{n5}}</text></div><div class="c {{b6}}"><text class="v {{f6}}">{{n6}}</text></div><div class="c {{b7}}"><text class="v {{f7}}">{{n7}}</text></div></div>
+        <div class="row"><div class="c {{b8}}"><text class="v {{f8}}">{{n8}}</text></div><div class="c {{b9}}"><text class="v {{f9}}">{{n9}}</text></div><div class="c {{b10}}"><text class="v {{f10}}">{{n10}}</text></div><div class="c {{b11}}"><text class="v {{f11}}">{{n11}}</text></div></div>
+        <div class="row"><div class="c {{b12}}"><text class="v {{f12}}">{{n12}}</text></div><div class="c {{b13}}"><text class="v {{f13}}">{{n13}}</text></div><div class="c {{b14}}"><text class="v {{f14}}">{{n14}}</text></div><div class="c {{b15}}"><text class="v {{f15}}">{{n15}}</text></div></div>
+      </div>
+      <div class="footer">
+        <text class="hint">{{hint}}</text>
+        <text class="probebtn" onclick="openProbe">interconnect</text>
+      </div>
+    </div>
+
+    <div class="overlay" if="{{over}}">
+      <text class="over1">{{overTitle}}</text>
+      <text class="bigscore">{{score}}</text>
+      <text class="over2">{{overBest}}</text>
+      <div class="buttons">
+        <text class="btn play" onclick="onPlay">JUGAR</text>
+        <text class="btn quit" onclick="onQuit">SALIR</text>
+      </div>
+    </div>
+
+    <div class="overlay" if="{{probe}}">
+      <text class="ptitle">interconnect</text>
+      <text class="ptext">{{probeText}}</text>
+      <div class="buttons">
+        <text class="btn play" onclick="runProbe">PROBAR</text>
+        <text class="btn quit" onclick="closeProbe">CERRAR</text>
+      </div>
+    </div>
+  </stack>
+</template>
+
+<script>
+// La rejilla de la plantilla esta generada: cada casilla tiene tres bindings
+// de primer nivel (fondo, tamano de letra y valor), que es lo unico que este
+// runtime repinta barato. Ver ../vela-probe/README.md.
+import storage from '@system.storage'
+import vibrator from '@system.vibrator'
+import brightness from '@system.brightness'
+import app from '@system.app'
+import router from '@system.router'
+import interconnect from '@system.interconnect'
+
+const VARIANT = '__VARIANT__'
+const SIZE = 4
+const CELLS = SIZE * SIZE
+
+let grid = []        // 16 numeros, 0 = vacia
+let mirror = []      // copia de lo pintado, para tocar solo lo que cambia
+let touchX = 0
+let touchY = 0
+let probeLines = []
+let probeTimer = null
+
+function tileClass(v) {
+  if (!v) return 'e'
+  if (v > 2048) return 'tbig'
+  return 't' + v
+}
+
+function fontClass(v) {
+  if (!v) return 'd0'
+  const len = ('' + v).length
+  if (len <= 2) return 'd1'
+  if (len === 3) return 'd3'
+  if (len === 4) return 'd4'
+  return 'd5'
+}
+
+function keysOf(obj) {
+  const out = []
+  if (obj === undefined || obj === null) return out
+  const push = function (k) {
+    if (k !== 'constructor' && out.indexOf(k) < 0) out.push(k)
+  }
+  try {
+    for (const k in obj) push(k)
+  } catch (e) { /* vacio */ }
+  try {
+    Object.getOwnPropertyNames(obj).forEach(push)
+  } catch (e) { /* vacio */ }
+  try {
+    const p = Object.getPrototypeOf(obj)
+    if (p && p !== Object.prototype) Object.getOwnPropertyNames(p).forEach(push)
+  } catch (e) { /* vacio */ }
+  return out
+}
+
+function buzz(ms) {
+  try {
+    if (vibrator && typeof vibrator.vibrate === 'function') vibrator.vibrate({ mode: ms })
+  } catch (e) { /* vacio */ }
+}
+
+// Desplaza y fusiona una linea hacia el principio. Cada ficha se fusiona una
+// sola vez por movimiento, que es la regla que mas se suele romper.
+function slide(line) {
+  const out = []
+  let gained = 0
+  let last = -1
+  for (let i = 0; i < line.length; i++) {
+    const v = line[i]
+    if (!v) continue
+    if (last >= 0 && out[last] === v) {
+      out[last] = v * 2
+      gained += v * 2
+      last = -1
+    } else {
+      out.push(v)
+      last = out.length - 1
+    }
+  }
+  while (out.length < line.length) out.push(0)
+  return { line: out, gained: gained }
+}
+
+export default {
+  private: {
+    score: 0,
+    best: 0,
+    bestText: '',
+    hint: 'desliza',
+    over: false,
+    overTitle: 'GAME OVER',
+    overBest: '',
+    probe: false,
+    probeText: 'sin probar',
+    b0: 'e', f0: 'd0', n0: '', b1: 'e', f1: 'd0', n1: '', b2: 'e', f2: 'd0', n2: '', b3: 'e', f3: 'd0', n3: '',
+    b4: 'e', f4: 'd0', n4: '', b5: 'e', f5: 'd0', n5: '', b6: 'e', f6: 'd0', n6: '', b7: 'e', f7: 'd0', n7: '',
+    b8: 'e', f8: 'd0', n8: '', b9: 'e', f9: 'd0', n9: '', b10: 'e', f10: 'd0', n10: '', b11: 'e', f11: 'd0', n11: '',
+    b12: 'e', f12: 'd0', n12: '', b13: 'e', f13: 'd0', n13: '', b14: 'e', f14: 'd0', n14: '', b15: 'e', f15: 'd0', n15: ''
+  },
+
+  onInit() {
+    this.loadBest()
+  },
+
+  onShow() {
+    try {
+      brightness.setKeepScreenOn({ keepScreenOn: true })
+    } catch (e) { /* vacio */ }
+    if (!grid.length) this.reset()
+  },
+
+  // --- pintado ---
+
+  paint() {
+    for (let i = 0; i < CELLS; i++) {
+      const v = grid[i]
+      if (mirror[i] === v) continue
+      mirror[i] = v
+      this['b' + i] = tileClass(v)
+      this['f' + i] = fontClass(v)
+      this['n' + i] = v ? '' + v : ''
+    }
+  },
+
+  // --- juego ---
+
+  reset() {
+    grid = []
+    mirror = []
+    for (let i = 0; i < CELLS; i++) {
+      grid.push(0)
+      mirror.push(-1)
+    }
+    this.score = 0
+    this.over = false
+    this.hint = 'desliza'
+    this.spawn()
+    this.spawn()
+    this.paint()
+  },
+
+  spawn() {
+    const free = []
+    for (let i = 0; i < CELLS; i++) {
+      if (!grid[i]) free.push(i)
+    }
+    if (!free.length) return false
+    const idx = free[Math.floor(Math.random() * free.length)]
+    grid[idx] = Math.random() < 0.9 ? 2 : 4
+    return true
+  },
+
+  // dir: left, right, up, down
+  move(dir) {
+    if (this.over) return
+    const before = grid.join(',')
+    let gained = 0
+
+    for (let k = 0; k < SIZE; k++) {
+      const idx = []
+      for (let j = 0; j < SIZE; j++) {
+        if (dir === 'left') idx.push(k * SIZE + j)
+        else if (dir === 'right') idx.push(k * SIZE + (SIZE - 1 - j))
+        else if (dir === 'up') idx.push(j * SIZE + k)
+        else idx.push((SIZE - 1 - j) * SIZE + k)
+      }
+      const line = []
+      for (let j = 0; j < SIZE; j++) line.push(grid[idx[j]])
+      const res = slide(line)
+      gained += res.gained
+      for (let j = 0; j < SIZE; j++) grid[idx[j]] = res.line[j]
+    }
+
+    if (grid.join(',') === before) return    // movimiento invalido: no cuenta
+
+    if (gained) {
+      this.score = this.score + gained
+      buzz(25)
+    }
+    this.spawn()
+    this.paint()
+    if (this.isOver()) this.gameOver()
+  },
+
+  isOver() {
+    for (let i = 0; i < CELLS; i++) {
+      if (!grid[i]) return false
+    }
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const v = grid[r * SIZE + c]
+        if (c + 1 < SIZE && grid[r * SIZE + c + 1] === v) return false
+        if (r + 1 < SIZE && grid[(r + 1) * SIZE + c] === v) return false
+      }
+    }
+    return true
+  },
+
+  gameOver() {
+    this.over = true
+    this.overTitle = 'GAME OVER'
+    buzz(200)
+    this.saveBest()
+    this.overBest = this.score >= this.best && this.score > 0
+      ? 'nuevo record'
+      : 'max ' + Math.max(this.best, this.score)
+  },
+
+  onPlay() {
+    this.reset()
+  },
+
+  // --- entrada ---
+
+  onSwipe(e) {
+    const d = e && e.direction
+    if (d === 'up' || d === 'down' || d === 'left' || d === 'right') {
+      if (!this.over && !this.probe) this.move(d)
+    }
+  },
+
+  onTouchStart(e) {
+    const t = e && ((e.touches && e.touches[0]) || e)
+    if (!t) return
+    touchX = t.clientX !== undefined ? t.clientX : t.pageX
+    touchY = t.clientY !== undefined ? t.clientY : t.pageY
+  },
+
+  onTouchEnd(e) {
+    if (this.over || this.probe) return
+    const t = e && ((e.changedTouches && e.changedTouches[0]) || e)
+    if (!t) return
+    const x = t.clientX !== undefined ? t.clientX : t.pageX
+    const y = t.clientY !== undefined ? t.clientY : t.pageY
+    if (typeof x !== 'number' || typeof y !== 'number') return
+    const dx = x - touchX
+    const dy = y - touchY
+    if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return
+    if (Math.abs(dx) > Math.abs(dy)) this.move(dx > 0 ? 'right' : 'left')
+    else this.move(dy > 0 ? 'down' : 'up')
+  },
+
+  // --- sonda de interconnect: el unico modulo presente cuyo alcance no se
+  // conoce. Si abriera un canal con el telefono, se acabaria el aislamiento.
+  openProbe() {
+    this.probe = true
+    this.probeText = probeLines.length ? probeLines.join('\n') : 'pulsa PROBAR'
+  },
+
+  closeProbe() {
+    this.probe = false
+  },
+
+  plog(s) {
+    probeLines.push(('' + s).slice(0, 70))
+    if (probeLines.length > 9) probeLines.shift()
+    this.probeText = probeLines.join('\n')
+  },
+
+  runProbe() {
+    const self = this
+    probeLines = []
+    this.plog(VARIANT + ' instance:' + (interconnect ? typeof interconnect.instance : 'sin modulo'))
+    if (!interconnect || typeof interconnect.instance !== 'function') return
+
+    let inst
+    try {
+      inst = interconnect.instance()
+    } catch (e) {
+      this.plog('instance() err: ' + e)
+    }
+    if (!inst) {
+      try {
+        inst = interconnect.instance({})
+      } catch (e) {
+        this.plog('instance({}) err: ' + e)
+      }
+    }
+    if (!inst) return this.plog('no devuelve objeto')
+
+    this.plog('keys: ' + keysOf(inst).join(','))
+
+    try {
+      inst.onopen = function () { self.plog('ONOPEN') }
+      inst.onclose = function () { self.plog('onclose') }
+      inst.onerror = function (err) { self.plog('onerror: ' + err) }
+      inst.onmessage = function (m) { self.plog('MENSAJE: ' + JSON.stringify(m).slice(0, 50)) }
+    } catch (e) {
+      this.plog('handlers err: ' + e)
+    }
+
+    const tryCall = function (name, arg) {
+      if (typeof inst[name] !== 'function') return
+      try {
+        inst[name](arg)
+        self.plog(name + '() llamado')
+      } catch (e) {
+        self.plog(name + ' err: ' + ('' + e).slice(0, 40))
+      }
+    }
+    tryCall('open')
+    tryCall('connect')
+    tryCall('send', { data: 'ping', success() { self.plog('send OK') }, fail(d, c) { self.plog('send fail ' + c) } })
+
+    if (probeTimer) clearTimeout(probeTimer)
+    probeTimer = setTimeout(function () {
+      self.plog('(8s sin mas eventos)')
+    }, 8000)
+  },
+
+  // --- salir y record ---
+
+  onQuit() {
+    try {
+      if (app && typeof app.terminate === 'function') return app.terminate()
+    } catch (e) { /* vacio */ }
+    try {
+      if (router && typeof router.back === 'function') router.back()
+    } catch (e) { /* vacio */ }
+  },
+
+  loadBest() {
+    const self = this
+    try {
+      storage.get({
+        key: 'best2048',
+        success(v) {
+          const n = parseInt(v, 10)
+          if (n > 0) {
+            self.best = n
+            self.bestText = 'max ' + n
+          }
+        }
+      })
+    } catch (e) { /* vacio */ }
+  },
+
+  saveBest() {
+    if (this.score <= this.best) return
+    this.best = this.score
+    this.bestText = 'max ' + this.score
+    try {
+      storage.set({ key: 'best2048', value: '' + this.score })
+    } catch (e) { /* vacio */ }
+  }
+}
+</script>
+
+<style>
+.page {
+  width: 336px;
+  height: 480px;
+  background-color: #000000;
+}
+
+.layer {
+  flex-direction: column;
+  width: 336px;
+  height: 480px;
+}
+
+.header {
+  width: 336px;
+  height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+.score {
+  font-size: 30px;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.best {
+  font-size: 15px;
+  color: #8a8a8a;
+}
+
+.board {
+  flex-direction: column;
+  width: 336px;
+  height: 336px;
+}
+
+.row {
+  flex-direction: row;
+  width: 336px;
+  height: 84px;
+}
+
+.c {
+  width: 78px;
+  height: 78px;
+  margin: 3px;
+  border-radius: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.v {
+  text-align: center;
+  color: #f7f4ef;
+}
+
+.d0 { font-size: 1px; color: #00000000; }
+.d1 { font-size: 34px; }
+.d3 { font-size: 28px; }
+.d4 { font-size: 22px; }
+.d5 { font-size: 17px; }
+
+.e { background-color: #1a1a1a; }
+.t2 { background-color: #3a3a38; }
+.t4 { background-color: #4d4a42; }
+.t8 { background-color: #d98d4b; }
+.t16 { background-color: #e08050; }
+.t32 { background-color: #e5654a; }
+.t64 { background-color: #e34a2a; }
+.t128 { background-color: #e6c85a; }
+.t256 { background-color: #e6c14a; }
+.t512 { background-color: #e6b93a; }
+.t1024 { background-color: #e6b02a; }
+.t2048 { background-color: #ffa000; }
+.tbig { background-color: #6a5acd; }
+
+.footer {
+  width: 336px;
+  height: 96px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.hint {
+  font-size: 14px;
+  color: #666666;
+}
+
+.probebtn {
+  font-size: 13px;
+  color: #5a7fa8;
+  margin-top: 10px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  padding-left: 14px;
+  padding-right: 14px;
+  border-radius: 8px;
+  background-color: #14202c;
+}
+
+.overlay {
+  width: 336px;
+  height: 480px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #000000fa;
+}
+
+.over1 {
+  font-size: 30px;
+  font-weight: bold;
+  color: #ffa000;
+}
+
+.bigscore {
+  font-size: 60px;
+  font-weight: bold;
+  color: #ffffff;
+  margin-top: 2px;
+}
+
+.over2 {
+  font-size: 18px;
+  color: #9e9e9e;
+}
+
+.ptitle {
+  font-size: 20px;
+  font-weight: bold;
+  color: #8ab4f8;
+}
+
+.ptext {
+  font-size: 11px;
+  color: #c0c0c0;
+  text-align: center;
+  margin-top: 8px;
+  width: 320px;
+}
+
+.buttons {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 22px;
+}
+
+.btn {
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+  height: 50px;
+  width: 128px;
+  padding-top: 12px;
+  border-radius: 12px;
+  margin-left: 6px;
+  margin-right: 6px;
+}
+
+.play {
+  color: #000000;
+  background-color: #ffa000;
+}
+
+.quit {
+  color: #ffffff;
+  background-color: #444444;
+}
+</style>

@@ -1,0 +1,7 @@
+<script>
+export default {
+  onCreate() {
+    console.log('2048: app created')
+  }
+}
+</script>
